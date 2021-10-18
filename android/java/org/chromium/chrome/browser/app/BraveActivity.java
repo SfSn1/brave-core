@@ -149,6 +149,7 @@ import org.chromium.chrome.browser.vpn.BraveVpnNativeWorker;
 import org.chromium.chrome.browser.vpn.BraveVpnObserver;
 import org.chromium.chrome.browser.vpn.activities.BraveVpnProfileActivity;
 import org.chromium.chrome.browser.vpn.fragments.BraveVpnCalloutDialogFragment;
+import org.chromium.chrome.browser.vpn.utils.BraveVpnApiResponseUtils;
 import org.chromium.chrome.browser.vpn.utils.BraveVpnPrefUtils;
 import org.chromium.chrome.browser.vpn.utils.BraveVpnProfileUtils;
 import org.chromium.chrome.browser.vpn.utils.BraveVpnUtils;
@@ -317,7 +318,7 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
             BraveVpnNativeWorker.getInstance().verifyPurchaseToken(mPurchaseToken, mProductId,
                     BraveVpnUtils.SUBSCRIPTION_PARAM_TEXT, getPackageName());
         } else {
-            braveVpnVerificationFailed();
+            BraveVpnApiResponseUtils.queryPurchaseFailed(BraveActivity.this);
         }
     }
 
@@ -346,7 +347,7 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
                     }
                 }
             } else {
-                braveVpnVerificationFailed();
+                BraveVpnApiResponseUtils.queryPurchaseFailed(BraveActivity.this);
             }
             mPurchaseToken = "";
             mProductId = "";
@@ -365,22 +366,6 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
             braveVpnProfileIntent.putExtra(BraveVpnUtils.VERIFY_CREDENTIALS_FAILED, true);
             startActivity(braveVpnProfileIntent);
         }
-    }
-
-    private void braveVpnVerificationFailed() {
-        BraveVpnPrefUtils.setPurchaseToken("");
-        BraveVpnPrefUtils.setProductId("");
-        BraveVpnPrefUtils.setPurchaseExpiry(0L);
-        BraveVpnPrefUtils.setSubscriptionPurchase(false);
-        if (BraveVpnProfileUtils.getInstance().isVPNConnected(BraveActivity.this)) {
-            BraveVpnProfileUtils.getInstance().stopVpn(BraveActivity.this);
-        }
-        BraveVpnProfileUtils.getInstance().deleteVpnProfile(BraveActivity.this);
-        Toast.makeText(BraveActivity.this, R.string.purchase_token_verification_failed,
-                     Toast.LENGTH_LONG)
-                .show();
-        BraveVpnUtils.dismissProgressDialog();
-        BraveVpnUtils.openBraveVpnPlansActivity(BraveActivity.this);
     }
 
     @Override
