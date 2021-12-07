@@ -9,6 +9,7 @@
 
 #include "bat/ledger/internal/core/bat_ledger_job.h"
 #include "bat/ledger/internal/ledger_impl.h"
+#include "bat/ledger/internal/upgrades/upgrade_manager.h"
 
 namespace ledger {
 
@@ -18,50 +19,19 @@ class LedgerImplInitializer : public BATLedgerContext::Object {
  public:
   static constexpr char kContextKey[] = "ledger-impl-initializer";
 
-  Future<bool> Initialize() { return context().StartJob<Job>(); }
+  Future<bool> Initialize() {
+    auto* ledger = context().GetLedgerImpl();
 
- private:
-  class Job : public BATLedgerJob<bool> {
-   public:
-    void Start() {
-      context().GetLedgerImpl()->database()->Initialize(
-          false, CreateLambdaCallback(this, &Job::OnDatabaseInitialized));
-    }
+    ledger->publisher()->SetPublisherServerListTimer();
+    ledger->contribution()->SetReconcileTimer();
+    ledger->promotion()->Refresh(false);
+    ledger->contribution()->Initialize();
+    ledger->promotion()->Initialize();
+    ledger->api()->Initialize();
+    ledger->recovery()->Check();
 
-   private:
-    void OnDatabaseInitialized(mojom::Result result) {
-      if (result != mojom::Result::LEDGER_OK) {
-        context().LogError(FROM_HERE) << "Failed to initialize database";
-        return Complete(false);
-      }
-
-      context().GetLedgerImpl()->state()->Initialize(
-          CreateLambdaCallback(this, &Job::OnStateInitialized));
-    }
-
-    void OnStateInitialized(mojom::Result result) {
-      if (result != mojom::Result::LEDGER_OK) {
-        context().LogError(FROM_HERE) << "Failed to initialize state";
-        return Complete(false);
-      }
-
-      StartServices();
-    }
-
-    void StartServices() {
-      auto* ledger = context().GetLedgerImpl();
-
-      ledger->publisher()->SetPublisherServerListTimer();
-      ledger->contribution()->SetReconcileTimer();
-      ledger->promotion()->Refresh(false);
-      ledger->contribution()->Initialize();
-      ledger->promotion()->Initialize();
-      ledger->api()->Initialize();
-      ledger->recovery()->Check();
-
-      Complete(true);
-    }
-  };
+    return MakeReadyFuture(true);
+  }
 };
 
 template <typename... Ts>
@@ -95,7 +65,7 @@ class InitializeJob : public BATLedgerJob<bool> {
   }
 };
 
-using InitializeAllJob = InitializeJob<LedgerImplInitializer>;
+using InitializeAllJob = InitializeJob<UpgradeManager, LedgerImplInitializer>;
 
 }  // namespace
 
