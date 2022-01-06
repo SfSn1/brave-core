@@ -17,6 +17,7 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/supports_user_data.h"
+#include "base/time/time.h"
 
 namespace ledger {
 
@@ -67,7 +68,9 @@ class BATLedgerContext : private base::SupportsUserData {
    protected:
     Object();
 
-    BATLedgerContext& context() { return *context_; }
+    BATLedgerContext& context() const {
+      return *const_cast<Object*>(this)->context_;
+    }
 
    private:
     friend class BATLedgerContext;
@@ -79,6 +82,8 @@ class BATLedgerContext : private base::SupportsUserData {
 
   struct Options {
     Environment environment = Environment::kProduction;
+    bool auto_contribute_allowed = false;
+    bool enable_experimental_features = false;
   };
 
   // NOTE: Values are based on the original logging design where each level from

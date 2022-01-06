@@ -70,6 +70,7 @@ class SQLStore : public BATLedgerContext::Object {
  public:
   static const char kContextKey[];
 
+  using Command = mojom::DBCommandPtr;
   using CommandList = std::vector<mojom::DBCommandPtr>;
 
   // Opens the database and returns the current database version number.

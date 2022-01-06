@@ -32,7 +32,15 @@ BATLedgerContext::Environment GetEnvironment() {
 BATLedgerContext::Options GetOptions(LedgerClient* ledger_client) {
   DCHECK(ledger_client);
   BATLedgerContext::Options options;
+
   options.environment = GetEnvironment();
+
+  options.auto_contribute_allowed =
+      !ledger_client->GetBooleanOption(option::kIsBitflyerRegion);
+
+  options.enable_experimental_features =
+      ledger_client->GetBooleanOption(option::kEnableExperimentalFeatures);
+
   return options;
 }
 
