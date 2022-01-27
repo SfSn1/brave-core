@@ -21,6 +21,7 @@ import {
 } from '../../constants/types'
 import {
   ActiveOriginChanged,
+  GetCoinMarketsResponse,
   IsEip1559Changed,
   NewUnapprovedTxAdded,
   SetTransactionProviderErrorType,
@@ -86,7 +87,9 @@ const defaultState: WalletState = {
     crypto: ''
   },
   transactionProviderErrorRegistry: {},
-  defaultNetworks: [] as BraveWallet.NetworkInfo[]
+  defaultNetworks: [] as BraveWallet.NetworkInfo[],
+  isLoadingCoinMarketData: true,
+  coinMarketData: []
 }
 
 const reducer = createReducer<WalletState>({}, defaultState)
@@ -467,6 +470,14 @@ reducer.on(WalletActions.setDefaultNetworks, (state: WalletState, payload: Brave
   return {
     ...state,
     defaultNetworks: payload
+  }
+})
+
+reducer.on(WalletActions.setCoinMarkets, (state: WalletState, payload: GetCoinMarketsResponse) => {
+  return {
+    ...state,
+    coinMarketData: payload.success ? payload.values : [],
+    isLoadingCoinMarketData: false
   }
 })
 
