@@ -9,7 +9,9 @@
 #include <memory>
 #include <string>
 
+#include "brave/components/brave_wallet/browser/fil_tx_state_manager.h"
 #include "brave/components/brave_wallet/browser/tx_manager.h"
+#include "brave/components/brave_wallet/common/brave_wallet_types.h"
 
 class PrefService;
 
@@ -20,6 +22,8 @@ class JsonRpcService;
 class KeyringService;
 class FilNonceTracker;
 class FilTxStateManager;
+class FilTransaction;
+class FilPendingTxTracker;
 
 class FilTxManager : public TxManager {
  public:
@@ -34,8 +38,6 @@ class FilTxManager : public TxManager {
                                 AddUnapprovedTransactionCallback) override;
   void ApproveTransaction(const std::string& tx_meta_id,
                           ApproveTransactionCallback) override;
-  void RejectTransaction(const std::string& tx_meta_id,
-                         RejectTransactionCallback) override;
   void GetAllTransactionInfo(const std::string& from,
                              GetAllTransactionInfoCallback) override;
 
@@ -52,12 +54,38 @@ class FilTxManager : public TxManager {
 
   void Reset() override;
 
- private:
-  // TxManager
-  void UpdatePendingTransactions() override;
-  FilTxStateManager* GetFilTxStateManager();
+  void GetEstimatedGas(const std::string& from,
+                       std::unique_ptr<FilTransaction> tx,
+                       AddUnapprovedTransactionCallback callback);
+  std::unique_ptr<FilTxMeta> GetTxForTesting(const std::string& tx_meta_id);
 
+ private:
+  friend class FilTxManagerUnitTest;
+
+  void AddUnapprovedTransaction(mojom::FilTxDataPtr tx_data,
+                                const std::string& from,
+                                AddUnapprovedTransactionCallback callback);
+  void OnGetNextNonce(std::unique_ptr<FilTxMeta> meta,
+                      ApproveTransactionCallback callback,
+                      bool success,
+                      uint256_t nonce);
+  void ContinueAddUnapprovedTransaction(
+      const std::string& from,
+      std::unique_ptr<FilTransaction> tx,
+      AddUnapprovedTransactionCallback callback,
+      const std::string& gas_premium,
+      const std::string& gas_fee_cap,
+      int64_t gas_limit,
+      const std::string& cid,
+      mojom::ProviderError error,
+      const std::string& error_message);
+
+  void UpdatePendingTransactions() override;
+
+  FilTxStateManager* GetFilTxStateManager();
   std::unique_ptr<FilNonceTracker> nonce_tracker_;
+  bool known_no_pending_tx_ = false;
+  base::WeakPtrFactory<FilTxManager> weak_factory_{this};
 };
 
 }  // namespace brave_wallet

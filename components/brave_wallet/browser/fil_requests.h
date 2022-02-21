@@ -15,6 +15,16 @@ namespace brave_wallet {
 std::string fil_getBalance(const std::string& address);
 // Returns the transactions count of given address.
 std::string fil_getTransactionCount(const std::string& address);
+// Returns Gas estimation values.
+// https://github.com/filecoin-project/lotus/blob/master/chain/types/message.go
+std::string fil_estimateGas(const std::string& from_address,
+                            const std::string& to_address,
+                            const std::string& gas_premium,
+                            const std::string& gas_fee_cap,
+                            int64_t gas_limit,
+                            uint64_t nonce,
+                            const std::string& max_fee,
+                            const std::string& value);
 
 }  // namespace brave_wallet
 
