@@ -26,12 +26,13 @@ import {
   ApproveERC20Params,
   ER20TransferParams,
   ERC721TransferFromParams,
-  SendTransactionParams,
+  SendEthTransactionParams,
   SwapErrorResponse,
   WalletAccountType,
   WalletState,
   WalletInfo,
-  TransactionProviderError
+  TransactionProviderError,
+  SendFilTransactionParams
 } from '../../constants/types'
 
 // Utils
@@ -48,7 +49,9 @@ import {
   refreshTransactionHistory,
   refreshBalances,
   refreshVisibleTokenInfo,
-  refreshPrices
+  refreshPrices,
+  sendEthTransaction,
+  sendFilTransaction
 } from './lib'
 import { Store } from './types'
 import InteractionNotifier from './interactionNotifier'
@@ -89,7 +92,7 @@ async function refreshWalletInfo (store: Store) {
       BraveWallet.ExternalWalletType.MetaMask)
   store.dispatch(WalletActions.setMetaMaskInstalled(mmResult.installed))
 
-  await store.dispatch(refreshTransactionHistory())
+  await store.dispatch(refreshTransactionHistory(BraveWallet.CoinType.ETH))
   await store.dispatch(refreshSitePermissions())
 }
 
@@ -103,6 +106,12 @@ async function updateAccountInfo (store: Store) {
   } else {
     await refreshWalletInfo(store)
   }
+}
+
+export const getCoinFromTxDataUnion = (txDataUnion: BraveWallet.TxDataUnion): BraveWallet.CoinType => {
+  if (txDataUnion.filTxData) { return BraveWallet.CoinType.FIL }
+  if (txDataUnion.solanaTxData) { return BraveWallet.CoinType.SOL }
+  return BraveWallet.CoinType.ETH
 }
 
 handler.on(WalletActions.refreshBalancesAndPrices.getType(), async (store: Store) => {
@@ -204,7 +213,7 @@ handler.on(WalletActions.selectAccount.getType(), async (store: Store, payload: 
 
   await keyringService.setSelectedAccount(payload.address, payload.coin)
   store.dispatch(WalletActions.setSelectedAccount(payload))
-  await store.dispatch(refreshTransactionHistory(payload.address))
+  await store.dispatch(refreshTransactionHistory(payload.coin, payload.address))
 })
 
 handler.on(WalletActions.initialized.getType(), async (store: Store, payload: WalletInfo) => {
@@ -238,7 +247,7 @@ handler.on(WalletActions.initialized.getType(), async (store: Store, payload: Wa
 
   // This can be 0 when the wallet is locked
   if (payload.selectedAccount) {
-    await store.dispatch(refreshTransactionHistory(payload.selectedAccount))
+    await store.dispatch(refreshTransactionHistory(BraveWallet.CoinType.ETH, payload.selectedAccount))
   }
 })
 
@@ -280,78 +289,22 @@ handler.on(WalletActions.selectPortfolioTimeline.getType(), async (store: Store,
   await store.dispatch(refreshTokenPriceHistory(payload))
 })
 
-handler.on(WalletActions.sendTransaction.getType(), async (store: Store, payload: SendTransactionParams) => {
-  const apiProxy = getAPIProxy()
-  /***
-   * Determine whether to create a legacy or EIP-1559 transaction.
-   *
-   * isEIP1559 is true IFF:
-   *   - network supports EIP-1559
-   *   - keyring supports EIP-1559 (ex: certain hardware wallets vendors)
-   *   - payload: SendTransactionParams has specified EIP-1559 gas-pricing
-   *     fields.
-   *
-   * In all other cases, fallback to legacy gas-pricing fields.
-   */
-  let isEIP1559
-  switch (true) {
-    // Transaction payload has hardcoded EIP-1559 gas fields.
-    case payload.maxPriorityFeePerGas !== undefined && payload.maxFeePerGas !== undefined:
-      isEIP1559 = true
-      break
-
-    // Transaction payload has hardcoded legacy gas fields.
-    case payload.gasPrice !== undefined:
-      isEIP1559 = false
-      break
-
-    // Check if network and keyring support EIP-1559.
-    default:
-      const { selectedAccount, selectedNetwork } = getWalletState(store)
-      isEIP1559 = hasEIP1559Support(selectedAccount, selectedNetwork)
-  }
-
-  const { chainId } = await apiProxy.jsonRpcService.getChainId(BraveWallet.CoinType.ETH)
-
+handler.on(WalletActions.sendTransaction.getType(), async (store: Store, payload: SendEthTransactionParams | SendFilTransactionParams) => {
   let addResult
-  const txData: BraveWallet.TxData = {
-    nonce: '',
-    // Estimated by eth_tx_service if value is '' for legacy transactions
-    gasPrice: isEIP1559 ? '' : payload.gasPrice || '',
-    // Estimated by eth_tx_service if value is ''
-    gasLimit: payload.gas || '',
-    to: payload.to,
-    value: payload.value,
-    data: payload.data || []
+  if (payload.coin === BraveWallet.CoinType.ETH) {
+    addResult = await sendEthTransaction(store, payload as SendEthTransactionParams)
+  } else if (payload.coin === BraveWallet.CoinType.FIL) {
+    addResult = await sendFilTransaction(payload as SendFilTransactionParams)
   }
-
-  if (isEIP1559) {
-    const txData1559: BraveWallet.TxData1559 = {
-      baseData: txData,
-      chainId,
-      // Estimated by eth_tx_service if value is ''
-      maxPriorityFeePerGas: payload.maxPriorityFeePerGas || '',
-      // Estimated by eth_tx_service if value is ''
-      maxFeePerGas: payload.maxFeePerGas || '',
-      gasEstimation: undefined
-    }
-    // @ts-expect-error google closure is ok with undefined for other fields but mojom runtime is not
-    addResult = await apiProxy.txService.addUnapprovedTransaction({ ethTxData1559: txData1559 }, payload.from)
-  } else {
-    // @ts-expect-error google closure is ok with undefined for other fields but mojom runtime is not
-    addResult = await apiProxy.txService.addUnapprovedTransaction({ ethTxData: txData }, payload.from)
-  }
-
-  if (!addResult.success) {
+  if (addResult && !addResult.success) {
     console.log(
       'Sending unapproved transaction failed: ' +
-      `from=${payload.from} err=${addResult.errorMessage} txData=`, txData
+      `from=${payload.from} err=${addResult.errorMessage}`
     )
     return
   }
-
   // Refresh the transaction history of the origin account.
-  await store.dispatch(refreshTransactionHistory(payload.from))
+  await store.dispatch(refreshTransactionHistory(payload.coin, payload.from))
 })
 
 handler.on(WalletActions.sendERC20Transfer.getType(), async (store: Store, payload: ER20TransferParams) => {
@@ -370,7 +323,8 @@ handler.on(WalletActions.sendERC20Transfer.getType(), async (store: Store, paylo
     gasPrice: payload.gasPrice,
     maxPriorityFeePerGas: payload.maxPriorityFeePerGas,
     maxFeePerGas: payload.maxFeePerGas,
-    data
+    data,
+    coin: BraveWallet.CoinType.ETH
   }))
 })
 
@@ -390,7 +344,8 @@ handler.on(WalletActions.sendERC721TransferFrom.getType(), async (store: Store, 
     gasPrice: payload.gasPrice,
     maxPriorityFeePerGas: payload.maxPriorityFeePerGas,
     maxFeePerGas: payload.maxFeePerGas,
-    data
+    data,
+    coin: BraveWallet.CoinType.ETH
   }))
 })
 
@@ -411,13 +366,15 @@ handler.on(WalletActions.approveERC20Allowance.getType(), async (store: Store, p
     from: payload.from,
     to: payload.contractAddress,
     value: '0x0',
-    data
+    data,
+    coin: BraveWallet.CoinType.ETH
   }))
 })
 
 handler.on(WalletActions.approveTransaction.getType(), async (store: Store, txInfo: BraveWallet.TransactionInfo) => {
   const apiProxy = getAPIProxy()
-  const result = await apiProxy.txService.approveTransaction(BraveWallet.CoinType.ETH, txInfo.id)
+  const coin = getCoinFromTxDataUnion(txInfo.txDataUnion)
+  const result = await apiProxy.txService.approveTransaction(coin, txInfo.id)
   const error = result.errorUnion.providerError ?? result.errorUnion.solanaProviderError
   if (error !== BraveWallet.ProviderError.kSuccess) {
     await store.dispatch(WalletActions.setTransactionProviderError({
@@ -429,20 +386,22 @@ handler.on(WalletActions.approveTransaction.getType(), async (store: Store, txIn
     }))
   }
 
-  await store.dispatch(refreshTransactionHistory(txInfo.fromAddress))
+  await store.dispatch(refreshTransactionHistory(coin, txInfo.fromAddress))
 })
 
 handler.on(WalletActions.rejectTransaction.getType(), async (store: Store, txInfo: BraveWallet.TransactionInfo) => {
   const apiProxy = getAPIProxy()
-  await apiProxy.txService.rejectTransaction(BraveWallet.CoinType.ETH, txInfo.id)
-  await store.dispatch(refreshTransactionHistory(txInfo.fromAddress))
+  const coin = getCoinFromTxDataUnion(txInfo.txDataUnion)
+  await apiProxy.txService.rejectTransaction(coin, txInfo.id)
+  await store.dispatch(refreshTransactionHistory(coin, txInfo.fromAddress))
 })
 
 handler.on(WalletActions.rejectAllTransactions.getType(), async (store) => {
   const state = getWalletState(store)
   const apiProxy = getAPIProxy()
   state.pendingTransactions.forEach(async (transaction) => {
-    await apiProxy.txService.rejectTransaction(BraveWallet.CoinType.ETH, transaction.id)
+    const coin = getCoinFromTxDataUnion(transaction.txDataUnion)
+    await apiProxy.txService.rejectTransaction(coin, transaction.id)
   })
   await refreshWalletInfo(store)
 })
@@ -517,7 +476,8 @@ export const fetchSwapQuoteFactory = (
         gas: new Amount(estimatedGas).toHex(),
         data: hexStrToNumberArray(data),
         maxPriorityFeePerGas,
-        maxFeePerGas
+        maxFeePerGas,
+        coin: BraveWallet.CoinType.ETH
       }
 
       store.dispatch(WalletActions.sendTransaction(params))
@@ -646,7 +606,8 @@ handler.on(WalletActions.transactionStatusChanged.getType(), async (store: Store
 
 handler.on(WalletActions.retryTransaction.getType(), async (store: Store, payload: BraveWallet.TransactionInfo) => {
   const { txService } = getAPIProxy()
-  const result = await txService.retryTransaction(BraveWallet.CoinType.ETH, payload.id)
+  const coin = getCoinFromTxDataUnion(payload.txDataUnion)
+  const result = await txService.retryTransaction(coin, payload.id)
   if (!result.success) {
     console.error(
       'Retry transaction failed: ' +
@@ -655,13 +616,14 @@ handler.on(WalletActions.retryTransaction.getType(), async (store: Store, payloa
     )
   } else {
     // Refresh the transaction history of the origin account.
-    await store.dispatch(refreshTransactionHistory(payload.fromAddress))
+    await store.dispatch(refreshTransactionHistory(coin, payload.fromAddress))
   }
 })
 
 handler.on(WalletActions.speedupTransaction.getType(), async (store: Store, payload: BraveWallet.TransactionInfo) => {
   const { txService } = getAPIProxy()
-  const result = await txService.speedupOrCancelTransaction(BraveWallet.CoinType.ETH, payload.id, false)
+  const coin = getCoinFromTxDataUnion(payload.txDataUnion)
+  const result = await txService.speedupOrCancelTransaction(coin, payload.id, false)
   if (!result.success) {
     console.error(
       'Speedup transaction failed: ' +
@@ -670,13 +632,14 @@ handler.on(WalletActions.speedupTransaction.getType(), async (store: Store, payl
     )
   } else {
     // Refresh the transaction history of the origin account.
-    await store.dispatch(refreshTransactionHistory(payload.fromAddress))
+    await store.dispatch(refreshTransactionHistory(coin, payload.fromAddress))
   }
 })
 
 handler.on(WalletActions.cancelTransaction.getType(), async (store: Store, payload: BraveWallet.TransactionInfo) => {
   const { txService } = getAPIProxy()
-  const result = await txService.speedupOrCancelTransaction(BraveWallet.CoinType.ETH, payload.id, true)
+  const coin = getCoinFromTxDataUnion(payload.txDataUnion)
+  const result = await txService.speedupOrCancelTransaction(coin, payload.id, true)
   if (!result.success) {
     console.error(
       'Cancel transaction failed: ' +
@@ -685,7 +648,7 @@ handler.on(WalletActions.cancelTransaction.getType(), async (store: Store, paylo
     )
   } else {
     // Refresh the transaction history of the origin account.
-    await store.dispatch(refreshTransactionHistory(payload.fromAddress))
+    await store.dispatch(refreshTransactionHistory(coin, payload.fromAddress))
   }
 })
 
