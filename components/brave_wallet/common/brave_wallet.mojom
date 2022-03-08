@@ -693,8 +693,15 @@ enum TransactionType {
   Other
 };
 
-// TODO(spylogsster): Fill the struct with needed fields.
 struct FilTxData {
+  string nonce;
+  string gas_premium;
+  string gas_fee_cap;
+  string gas_limit;
+  string max_fee;
+  string to;
+  string value;
+  string cid;
 };
 
 union TxDataUnion {
