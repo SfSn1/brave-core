@@ -8,8 +8,8 @@
 #include <memory>
 #include <utility>
 
-#include "brave/components/brave_wallet/browser/brave_wallet_constants.h"
 #include "brave/components/brave_wallet/browser/internal/hd_key_ed25519.h"
+#include "brave/components/brave_wallet/common/brave_wallet_constants.h"
 
 namespace brave_wallet {
 
