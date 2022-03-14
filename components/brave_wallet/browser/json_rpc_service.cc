@@ -5,6 +5,7 @@
 
 #include "brave/components/brave_wallet/browser/json_rpc_service.h"
 
+#include <iostream>
 #include <utility>
 
 #include "base/bind.h"
@@ -1389,6 +1390,73 @@ void JsonRpcService::ContinueGetERC721TokenBalance(
   bool is_owner = owner_address == account_address;
   std::move(callback).Run(is_owner ? "0x1" : "0x0",
                           mojom::ProviderError::kSuccess, "");
+}
+
+void JsonRpcService::GetERC721Metadata(const std::string& contract_address,
+                                       const std::string& token_id,
+                                       const std::string& chain_id,
+                                       GetERC721MetadataCallback callback) {
+  auto network_url = GetNetworkURL(prefs_, chain_id, mojom::CoinType::ETH);
+  if (!network_url.is_valid()) {
+    std::move(callback).Run(
+        "", mojom::ProviderError::kInvalidParams,
+        l10n_util::GetStringUTF8(IDS_WALLET_INVALID_PARAMETERS));
+    return;
+  }
+
+  if (!EthAddress::IsValidAddress(contract_address)) {
+    std::move(callback).Run(
+        "", mojom::ProviderError::kInvalidParams,
+        l10n_util::GetStringUTF8(IDS_WALLET_INVALID_PARAMETERS));
+    return;
+  }
+
+  uint256_t token_id_uint = 0;
+  if (!HexValueToUint256(token_id, &token_id_uint)) {
+    std::move(callback).Run(
+        "", mojom::ProviderError::kInvalidParams,
+        l10n_util::GetStringUTF8(IDS_WALLET_INVALID_PARAMETERS));
+    return;
+  }
+
+  std::string data;
+  if (!erc721::TokenURI(token_id_uint, &data)) {
+    std::move(callback).Run(
+        "", mojom::ProviderError::kInvalidParams,
+        l10n_util::GetStringUTF8(IDS_WALLET_INVALID_PARAMETERS));
+    return;
+  }
+
+  auto internal_callback =
+      base::BindOnce(&JsonRpcService::OnGetERC721Metadata,
+                     weak_ptr_factory_.GetWeakPtr(), std::move(callback));
+  RequestInternal(
+      eth::eth_call("", contract_address, "", "", "", data, "latest"), true,
+      network_url, std::move(internal_callback));
+}
+
+void JsonRpcService::OnGetERC721Metadata(
+    GetERC721MetadataCallback callback,
+    const int status,
+    const std::string& body,
+    const base::flat_map<std::string, std::string>& headers) {
+  if (status < 200 || status > 299) {
+    std::move(callback).Run(
+        "", mojom::ProviderError::kInternalError,
+        l10n_util::GetStringUTF8(IDS_WALLET_INTERNAL_ERROR));
+    return;
+  }
+
+  std::string result;
+  if (!eth::ParseERC721TokenURI(body, &result)) {
+    mojom::ProviderError error;
+    std::string error_message;
+    ParseErrorResult<mojom::ProviderError>(body, &error, &error_message);
+    std::move(callback).Run("", error, error_message);
+    return;
+  }
+  std::string output;
+  std::move(callback).Run(result, mojom::ProviderError::kSuccess, "");
 }
 
 void JsonRpcService::GetSupportsInterface(

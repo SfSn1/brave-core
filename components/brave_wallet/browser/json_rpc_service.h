@@ -215,6 +215,11 @@ class JsonRpcService : public KeyedService, public mojom::JsonRpcService {
                              const std::string& chain_id,
                              GetERC721TokenBalanceCallback callback) override;
 
+  void GetERC721Metadata(const std::string& contract_address,
+                         const std::string& token_id,
+                         const std::string& chain_id,
+                         GetERC721MetadataCallback callback) override;
+
   // Resets things back to the original state of BraveWalletService.
   // To be used when the Wallet is reset / erased
   void Reset();
@@ -401,6 +406,12 @@ class JsonRpcService : public KeyedService, public mojom::JsonRpcService {
   bool IsValidDomain(const std::string& domain);
 
   void OnGetERC721OwnerOf(
+      GetERC721OwnerOfCallback callback,
+      const int status,
+      const std::string& body,
+      const base::flat_map<std::string, std::string>& headers);
+
+  void OnGetERC721Metadata(
       GetERC721OwnerOfCallback callback,
       const int status,
       const std::string& body,
