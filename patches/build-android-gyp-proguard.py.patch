@@ -1,0 +1,12 @@
+diff --git a/build/android/gyp/proguard.py b/build/android/gyp/proguard.py
+index 41201d7f3b8889a5749f72a6e5e94d684d78c380..13ab09cb7469e1cce38bdced948e39e6839bc686 100755
+--- a/build/android/gyp/proguard.py
++++ b/build/android/gyp/proguard.py
+@@ -402,6 +402,7 @@ def _OptimizeWithR8(options,
+           options.desugar_jdk_libs_jar,
+           options.desugar_jdk_libs_configuration_jar, jdk_dex_output,
+           options.warnings_as_errors, l8_config_paths)
++      base_has_imported_lib = False
+       if int(options.min_api) >= 24 and base_has_imported_lib:
+         with open(jdk_dex_output, 'rb') as f:
+           dexfile = dex_parser.DexFile(bytearray(f.read()))

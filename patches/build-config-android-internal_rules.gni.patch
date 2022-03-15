@@ -1,7 +1,16 @@
 diff --git a/build/config/android/internal_rules.gni b/build/config/android/internal_rules.gni
-index 0ee7090363635d23864a1f06cd3a7496a2dbae0b..7c3cf1907c8ee5bbadcb185d77007727fd697cc0 100644
+index 0ee7090363635d23864a1f06cd3a7496a2dbae0b..8c30d1aa095a8c7a7bec47a3e1538a785342dcb8 100644
 --- a/build/config/android/internal_rules.gni
 +++ b/build/config/android/internal_rules.gni
+@@ -1225,7 +1225,7 @@ if (enable_java_templates) {
+           rebase_path(invoker.desugar_jars_paths, root_build_dir)
+       args += [ "--classpath=${_rebased_desugar_jars_paths}" ]
+     }
+-
++    
+     if ((!defined(invoker.proguard_enable_obfuscation) ||
+          invoker.proguard_enable_obfuscation) && enable_proguard_obfuscation) {
+       _proguard_sourcefile_suffix = ""
 @@ -3908,6 +3908,7 @@ if (enable_java_templates) {
          }
          _analysis_public_deps += [ ":$_bytecode_checks_target" ]

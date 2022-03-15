@@ -1,5 +1,5 @@
 diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
-index 48eb41434a59c15ac110a17d23fa59c2733a0576..26511869807601375e1e1772736c83acb6ea5293 100644
+index 48eb41434a59c15ac110a17d23fa59c2733a0576..fe0f798ec3316a31d4edc77bc3bc1fc4dcb2796f 100644
 --- a/chrome/android/BUILD.gn
 +++ b/chrome/android/BUILD.gn
 @@ -252,6 +252,7 @@ android_resources("chrome_app_java_resources") {
@@ -50,7 +50,47 @@ index 48eb41434a59c15ac110a17d23fa59c2733a0576..26511869807601375e1e1772736c83ac
        if (_is_monochrome) {
          deps += [ "//android_webview:locale_pak_assets" ]
          if (webview_includes_weblayer && !_is_bundle_module) {
-@@ -2593,6 +2599,7 @@ android_library("base_module_java") {
+@@ -2424,6 +2430,7 @@ template("chrome_public_apk_or_module_tmpl") {
+                              "is_base_module",
+                              "jni_registration_header",
+                              "target_type",
++                             "loadable_modules",
+                              "enable_lint",
+                              "enable_multidex",
+                              "lint_baseline_file",
+@@ -2437,6 +2444,7 @@ template("chrome_public_apk_or_module_tmpl") {
+     } else {
+       deps += [ ":chrome_apk_pak_assets" ]
+     }
++    deps += ["//brave/third_party/android_deps:com_wireguard_android_J__unpack_aar"]
+ 
+     android_manifest = chrome_public_android_manifest
+     android_manifest_dep = ":chrome_public_android_manifest"
+@@ -2458,6 +2466,23 @@ chrome_public_apk_or_module_tmpl("chrome_public_apk") {
+   target_type = "android_apk"
+   apk_name = "ChromePublic"
+   enable_multidex = is_java_debug
++  _lib_dir = get_label_info(
++                         "//brave/third_party/android_deps:com_wireguard_android($default_toolchain)",
++                         "target_out_dir") + "/com_wireguard_android_java/jni"
++
++  if (target_cpu == "x86") {
++    if (android_64bit_target_cpu) {
++      loadable_modules = ["$_lib_dir/x86_64/libwg-go.so"]
++    } else {
++      loadable_modules = ["$_lib_dir/x86/libwg-go.so"]
++    }
++  } else {
++    if (android_64bit_target_cpu) {
++      loadable_modules = ["$_lib_dir/arm64-v8a/libwg-go.so"]
++    } else {
++      loadable_modules = ["$_lib_dir/armeabi-v7a/libwg-go.so"]
++    }
++  }
+ }
+ 
+ chrome_public_apk_or_module_tmpl("chrome_modern_public_base_bundle_module") {
+@@ -2593,6 +2618,7 @@ android_library("base_module_java") {
      "//components/payments/content/android:service_java",
      "//third_party/androidx:androidx_browser_browser_java",
    ]
@@ -58,3 +98,118 @@ index 48eb41434a59c15ac110a17d23fa59c2733a0576..26511869807601375e1e1772736c83ac
  
    # More deps for DFMs.
    if (dfmify_dev_ui) {
+@@ -2708,6 +2734,8 @@ template("monochrome_public_apk_or_module_tmpl") {
+                              "use_trichrome_library",
+                              "version_code",
+                              "version_name",
++                             "loadable_modules",
++                             "secondary_abi_loadable_modules"
+                            ])
+     android_manifest = _android_manifest
+     android_manifest_dep = ":${target_name}__android_manifest"
+@@ -2743,9 +2771,15 @@ template("monochrome_public_apk_or_module_tmpl") {
+         deps += [ "//weblayer/browser/java:upstream_java" ]
+       }
+     }
++    deps += ["//brave/third_party/android_deps:com_wireguard_android_J__unpack_aar"]
+   }
+ }
+ 
++_lib_dir = get_label_info(
++                         "//brave/third_party/android_deps:com_wireguard_android($default_toolchain)",
++                         "target_out_dir") + "/com_wireguard_android_java/jni"
++    
++
+ if (android_64bit_target_cpu && skip_secondary_abi_for_cq) {
+   group("trichrome_library_apk") {
+     deps = [ ":trichrome_library_64_apk" ]
+@@ -2763,12 +2797,14 @@ if (android_64bit_target_cpu && skip_secondary_abi_for_cq) {
+       is_64_bit_browser = false
+       include_64_bit_webview = true
+     }
++    loadable_modules = ["$_lib_dir/armeabi-v7a/libwg-go.so"]
+   }
+ 
+   trichrome_library_apk_tmpl("trichrome_library_apk") {
+     apk_name = "TrichromeLibrary"
+     android_manifest = trichrome_library_android_manifest
+     android_manifest_dep = ":trichrome_library_android_manifest"
++    print("Line 2815")
+ 
+     if (android_64bit_target_cpu) {
+       is_64_bit_browser = false
+@@ -2798,6 +2834,8 @@ if (android_64bit_target_cpu) {
+     target_type = "android_apk"
+     is_64_bit_browser = true
+     include_32_bit_webview = false
++    print("Line 2844")
++    loadable_modules = ["$_lib_dir/arm64-v8a/libwg-go.so"]
+   }
+ 
+   trichrome_library_apk_tmpl("trichrome_library_64_apk") {
+@@ -2806,6 +2844,7 @@ if (android_64bit_target_cpu) {
+     android_manifest_dep = ":trichrome_library_64_android_manifest"
+     is_64_bit_browser = true
+     include_32_bit_webview = false
++    print("Line 2853")
+   }
+ 
+   if (!skip_secondary_abi_for_cq) {
+@@ -2815,6 +2854,7 @@ if (android_64bit_target_cpu) {
+       android_manifest_dep = ":trichrome_library_32_android_manifest"
+       is_64_bit_browser = false
+       include_64_bit_webview = false
++      print("Line 2863")
+     }
+ 
+     trichrome_library_apk_tmpl("trichrome_library_64_32_apk") {
+@@ -2823,6 +2863,7 @@ if (android_64bit_target_cpu) {
+       android_manifest_dep = ":trichrome_library_64_32_android_manifest"
+       is_64_bit_browser = true
+       include_32_bit_webview = true
++      print("Line 2872")
+     }
+   }
+ }
+@@ -2969,10 +3010,8 @@ template("monochrome_test_apk_tmpl") {
+                              "is_64_bit_browser",
+                              "include_64_bit_webview",
+                              "include_32_bit_webview",
+-                             "loadable_modules",
+                              "min_sdk_version",
+                              "proguard_configs",
+-                             "secondary_abi_loadable_modules",
+                              "shared_libraries",
+                              "target_sdk_version",
+                            ])
+@@ -2994,6 +3033,7 @@ template("monochrome_test_apk_tmpl") {
+              "//third_party/android_sdk:android_test_mock_java",
+              "//third_party/android_sdk:android_test_runner_java",
+            ]
++    deps += ["//brave/third_party/android_deps:com_wireguard_android_J__unpack_aar"]
+ 
+     if (webview_includes_weblayer) {
+       deps += [ "//weblayer/browser/java:upstream_java" ]
+@@ -3137,22 +3177,6 @@ if (enable_arcore) {
+       "//third_party/arcore-android-sdk-client:com_google_ar_core_java__ignored_manifest",
+     ]
+ 
+-    _libarcore_dir = get_label_info(
+-                         "//third_party/arcore-android-sdk-client:com_google_ar_core_java($default_toolchain)",
+-                         "target_out_dir") + "/com_google_ar_core_java/jni"
+-
+-    # We store this as a separate .so in the APK and only load as needed.
+-    if (android_64bit_target_cpu) {
+-      if (skip_secondary_abi_for_cq) {
+-        loadable_modules = [ "$_libarcore_dir/arm64-v8a/libarcore_sdk_c.so" ]
+-      } else {
+-        secondary_abi_loadable_modules =
+-            [ "$_libarcore_dir/armeabi-v7a/libarcore_sdk_c.so" ]
+-      }
+-    } else {
+-      loadable_modules = [ "$_libarcore_dir/armeabi-v7a/libarcore_sdk_c.so" ]
+-    }
+-
+     additional_apks = [ "//net/android:net_test_support_apk" ]
+   }
+ }
