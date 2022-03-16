@@ -569,8 +569,8 @@ const string kOptimismMainnetChainId = "0xa";
 const string kSolanaMainnet = "0x65";
 const string kSolanaTestnet = "0x66";
 const string kSolanaDevnet = "0x67";
-const string kFilecoinTestnet = "t";
 const string kFilecoinMainnet = "f";
+const string kFilecoinTestnet = "t";
 
 enum CoinType {
   ETH = 60,
