@@ -7,6 +7,7 @@ package org.chromium.chrome.browser.suggestions.tile;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.widget.TextView;
 
@@ -34,7 +35,8 @@ public class BraveTileView extends TileView {
         if (NTPWidgetManager.getInstance().getUsedWidgets().size() > 0
                 || UserPrefs.get(Profile.getLastUsedRegularProfile())
                            .getBoolean(BravePref.NEW_TAB_PAGE_SHOW_BACKGROUND_IMAGE)) {
-            mTitleView.setTextColor(getResources().getColor(android.R.color.black));
+            // mTitleView.setTypeface(null, Typeface.BOLD);
+            mTitleView.setTextColor(getResources().getColor(R.color.brave_stats_text_dark_color));
         }
     }
 }

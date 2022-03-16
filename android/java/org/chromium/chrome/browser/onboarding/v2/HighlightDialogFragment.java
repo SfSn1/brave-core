@@ -49,7 +49,7 @@ public class HighlightDialogFragment extends DialogFragment {
     }
 
     private static final List<Integer> highlightViews = Arrays.asList(R.id.brave_stats_ads,
-            R.id.brave_stats_data_saved, R.id.brave_stats_time, R.id.ntp_widget_cardview_layout);
+            R.id.brave_stats_data_saved, R.id.brave_stats_time);
 
     private HighlightItem item;
     private HighlightView highlightView;
