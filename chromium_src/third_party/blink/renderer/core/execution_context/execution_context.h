@@ -17,32 +17,29 @@ namespace blink {
 class WebContentSettingsClient;
 }  // namespace blink
 
-using blink::ExecutionContext;
-using blink::GarbageCollected;
-using blink::MakeGarbageCollected;
-using blink::Supplement;
-
 namespace brave {
 
 typedef base::RepeatingCallback<float(float, size_t)> AudioFarblingCallback;
 
 CORE_EXPORT blink::WebContentSettingsClient* GetContentSettingsClientFor(
-    ExecutionContext* context);
+    blink::ExecutionContext* context);
+CORE_EXPORT const blink::SecurityOrigin* GetEphemeralOrOriginalSecurityOrigin(
+    blink::ExecutionContext* context);
 CORE_EXPORT BraveFarblingLevel
-GetBraveFarblingLevelFor(ExecutionContext* context,
+GetBraveFarblingLevelFor(blink::ExecutionContext* context,
                          BraveFarblingLevel default_value);
-CORE_EXPORT bool AllowFingerprinting(ExecutionContext* context);
+CORE_EXPORT bool AllowFingerprinting(blink::ExecutionContext* context);
 
 class CORE_EXPORT BraveSessionCache final
-    : public GarbageCollected<BraveSessionCache>,
-      public Supplement<ExecutionContext> {
+    : public blink::GarbageCollected<BraveSessionCache>,
+      public blink::Supplement<blink::ExecutionContext> {
  public:
   static const char kSupplementName[];
 
-  explicit BraveSessionCache(ExecutionContext&);
+  explicit BraveSessionCache(blink::ExecutionContext&);
   virtual ~BraveSessionCache() = default;
 
-  static BraveSessionCache& From(ExecutionContext&);
+  static BraveSessionCache& From(blink::ExecutionContext&);
 
   AudioFarblingCallback GetAudioFarblingCallback(
       blink::WebContentSettingsClient* settings);
@@ -60,6 +57,7 @@ class CORE_EXPORT BraveSessionCache final
 
   void PerturbPixelsInternal(const unsigned char* data, size_t size);
 };
+
 }  // namespace brave
 
 #endif  // BRAVE_CHROMIUM_SRC_THIRD_PARTY_BLINK_RENDERER_CORE_EXECUTION_CONTEXT_EXECUTION_CONTEXT_H_

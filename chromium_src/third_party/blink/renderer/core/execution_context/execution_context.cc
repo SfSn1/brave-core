@@ -22,6 +22,10 @@
 #include "third_party/blink/renderer/platform/supplementable.h"
 #include "third_party/blink/renderer/platform/wtf/text/string_builder.h"
 
+using blink::ExecutionContext;
+using blink::MakeGarbageCollected;
+using blink::Supplement;
+
 namespace {
 
 const uint64_t zero = 0;
@@ -82,6 +86,19 @@ blink::WebContentSettingsClient* GetContentSettingsClientFor(
         blink::To<blink::WorkerGlobalScope>(context)->ContentSettingsClient();
   }
   return settings;
+}
+
+const blink::SecurityOrigin* GetEphemeralOrOriginalSecurityOrigin(
+    ExecutionContext* context) {
+  if (blink::WebContentSettingsClient* settings =
+          GetContentSettingsClientFor(context)) {
+    blink::WebSecurityOrigin ephemeral_storage_origin =
+        settings->GetEphemeralStorageOriginSync();
+    if (ephemeral_storage_origin.Get()) {
+      return ephemeral_storage_origin.Get();
+    }
+  }
+  return context->GetSecurityOrigin();
 }
 
 BraveFarblingLevel GetBraveFarblingLevelFor(ExecutionContext* context,

@@ -24,9 +24,9 @@ ScriptValue FarbleGLIntParameter(WebGL2RenderingContextBase* owner,
   if (!owner->isContextLost())
     owner->ContextGL()->GetIntegerv(pname, &value);
   if (value > 0) {
-    std::mt19937_64 prng =
-        brave::BraveSessionCache::From(*ExecutionContext::From(script_state))
-            .MakePseudoRandomGenerator();
+    std::mt19937_64 prng = brave::BraveSessionCache::From(
+                               *blink::ExecutionContext::From(script_state))
+                               .MakePseudoRandomGenerator();
     prng.discard(discard);
     if (prng() % 2 != 0) {
       value = value - 1;
@@ -43,9 +43,9 @@ ScriptValue FarbleGLInt64Parameter(WebGL2RenderingContextBase* owner,
   if (!owner->isContextLost())
     owner->ContextGL()->GetInteger64v(pname, &value);
   if (value > 0) {
-    std::mt19937_64 prng =
-        brave::BraveSessionCache::From(*ExecutionContext::From(script_state))
-            .MakePseudoRandomGenerator();
+    std::mt19937_64 prng = brave::BraveSessionCache::From(
+                               *blink::ExecutionContext::From(script_state))
+                               .MakePseudoRandomGenerator();
     prng.discard(discard);
     if (prng() % 2 != 0) {
       value = value - 1;
