@@ -333,6 +333,30 @@ bool ParseEthGetEncryptionPublicKeyParams(const std::string& json,
   return true;
 }
 
+bool ParseEthDecryptParams(const std::string& json,
+                           std::string* encrypted_message,
+                           std::string* address) {
+  if (!address)
+    return false;
+
+  // eth_decrypt allows extra params
+  auto list = GetParamsList(json);
+  if (!list || list->size() < 2)
+    return false;
+
+  const std::string* encrypted_message_str = (*list)[0].GetIfString();
+  if (!encrypted_message_str)
+    return false;
+
+  const std::string* address_str = (*list)[1].GetIfString();
+  if (!address_str)
+    return false;
+
+  *encrypted_message = *encrypted_message_str;
+  *address = *address_str;
+  return true;
+}
+
 bool ParsePersonalEcRecoverParams(const std::string& json,
                                   std::string* message,
                                   std::string* signature) {
