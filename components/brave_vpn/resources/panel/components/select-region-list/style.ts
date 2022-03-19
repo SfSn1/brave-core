@@ -77,8 +77,9 @@ export const BackButton = styled.button`
   width: 18px;
   height: 18px;
   padding: 0;
+  cursor: pointer;
 
-  svg > path {
+  svg {
     fill: ${(p) => p.theme.color.interactive05}
   }
 `
