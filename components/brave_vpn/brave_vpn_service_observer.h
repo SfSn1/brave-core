@@ -27,6 +27,8 @@ class BraveVPNServiceObserver : public brave_vpn::mojom::ServiceObserver {
 #if !BUILDFLAG(IS_ANDROID)
   void OnConnectionStateChanged(
       brave_vpn::mojom::ConnectionState state) override {}
+  void OnRegionListStateChanged(
+      brave_vpn::mojom::RegionListState state) override {}
   void OnConnectionCreated() override {}
   void OnConnectionRemoved() override {}
 #endif  // !BUILDFLAG(IS_ANDROID)

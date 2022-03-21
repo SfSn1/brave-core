@@ -47,6 +47,7 @@ class Value;
 class PrefService;
 
 using ConnectionState = brave_vpn::mojom::ConnectionState;
+using RegionListState = brave_vpn::mojom::RegionListState;
 #endif  // !BUILDFLAG(IS_ANDROID)
 
 using PurchasedState = brave_vpn::mojom::PurchasedState;
@@ -96,6 +97,7 @@ class BraveVpnService :
 
   // mojom::vpn::ServiceHandler
   void GetConnectionState(GetConnectionStateCallback callback) override;
+  void GetRegionListState(GetRegionListStateCallback callback) override;
   void Connect() override;
   void Disconnect() override;
   void CreateVPNConnection() override;
@@ -167,6 +169,7 @@ class BraveVpnService :
   void LoadCachedRegionData();
   void LoadSelectedRegion();
   void UpdateAndNotifyConnectionStateChange(ConnectionState state);
+  void UpdateAndNotifyRegionListStateChange(RegionListState state);
 
   void FetchRegionData();
   void OnFetchRegionList(const std::string& region_list, bool success);
@@ -248,6 +251,7 @@ class BraveVpnService :
   brave_vpn::BraveVPNConnectionInfo connection_info_;
   bool cancel_connecting_ = false;
   ConnectionState connection_state_ = ConnectionState::DISCONNECTED;
+  RegionListState region_list_state_ = RegionListState::NOT_FETCHED;
   bool needs_connect_ = false;
   base::ScopedObservation<brave_vpn::BraveVPNOSConnectionAPI,
                           brave_vpn::BraveVPNOSConnectionAPI::Observer>

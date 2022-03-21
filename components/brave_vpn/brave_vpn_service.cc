@@ -257,6 +257,38 @@ void BraveVpnService::OnRemoved() {
     obs->OnConnectionRemoved();
 }
 
+void BraveVpnService::UpdateAndNotifyRegionListStateChange(
+    RegionListState state) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+
+  // If current state is already fetched state, we already have cached
+  // region list. In this situation, don't update current state and do list
+  // update silently.
+  if (region_list_state_ == RegionListState::FETCHED) {
+    VLOG(1) << "Already has cached region list - do list update silently";
+    return;
+  }
+
+  if (region_list_state_ == state)
+    return;
+
+  switch (state) {
+    case RegionListState::NOT_FETCHED:
+      VLOG(1) << "RegionListState(NOT_FETCHED);";
+      break;
+    case RegionListState::FETCHING:
+      VLOG(1) << "RegionListState(FETCHING);";
+      break;
+    case RegionListState::FETCHED:
+      VLOG(1) << "RegionListState(FETCHED);";
+      break;
+  }
+
+  region_list_state_ = state;
+  for (const auto& obs : observers_)
+    obs->OnRegionListStateChanged(region_list_state_);
+}
+
 void BraveVpnService::UpdateAndNotifyConnectionStateChange(
     ConnectionState state) {
   // this is a simple state machine for handling connection state
@@ -455,10 +487,17 @@ void BraveVpnService::GetConnectionState(GetConnectionStateCallback callback) {
   std::move(callback).Run(connection_state_);
 }
 
+void BraveVpnService::GetRegionListState(GetRegionListStateCallback callback) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  VLOG(2) << __func__ << " : " << static_cast<int>(region_list_state_);
+  std::move(callback).Run(region_list_state_);
+}
+
 void BraveVpnService::FetchRegionData() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   VLOG(2) << __func__ << " : Start fetching region data";
   // Unretained is safe here becasue this class owns request helper.
+  UpdateAndNotifyRegionListStateChange(RegionListState::FETCHING);
   GetAllServerRegions(base::BindOnce(&BraveVpnService::OnFetchRegionList,
                                      base::Unretained(this)));
 }
@@ -471,6 +510,7 @@ void BraveVpnService::LoadCachedRegionData() {
     ParseAndCacheRegionList(preference->GetValue()->Clone());
     VLOG(2) << __func__ << " : "
             << "Loaded cached region list";
+    UpdateAndNotifyRegionListStateChange(RegionListState::FETCHED);
   }
 
   preference = prefs_->FindPreference(brave_vpn::prefs::kBraveVPNDeviceRegion);
@@ -531,6 +571,7 @@ void BraveVpnService::OnFetchRegionList(const std::string& region_list,
   if (value && value->is_list()) {
     prefs_->Set(brave_vpn::prefs::kBraveVPNRegionList, *value);
 
+    UpdateAndNotifyRegionListStateChange(RegionListState::FETCHED);
     if (ParseAndCacheRegionList(std::move(*value))) {
       // Fetch timezones list to determine default region of this device.
       GetTimezonesForRegions(base::BindOnce(&BraveVpnService::OnFetchTimezones,
