@@ -32,9 +32,6 @@ interface ServiceObserver {
   [EnableIfNot=is_android]
   OnConnectionStateChanged(ConnectionState state);
 
-  [EnableIfNot=is_android]
-  OnRegionListStateChanged(RegionListState state);
-
   OnPurchasedStateChanged(PurchasedState state);
 };
 
@@ -45,9 +42,6 @@ interface ServiceHandler {
 
   [EnableIfNot=is_android]
   GetConnectionState() => (ConnectionState state);
-
-  [EnableIfNot=is_android]
-  GetRegionListState() => (RegionListState state);
 
   [EnableIfNot=is_android]
   CreateVPNConnection();
@@ -106,12 +100,6 @@ enum PurchasedState {
   EXPIRED,
   LOADING,
   FAILED,
-};
-
-enum RegionListState {
-  NOT_FETCHED,
-  FETCHING,
-  FETCHED,
 };
 
 struct Region {
