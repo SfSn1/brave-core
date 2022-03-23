@@ -76,7 +76,10 @@ const defaultState: WalletState = {
   transactionSpotPrices: [],
   addUserAssetError: false,
   defaultWallet: BraveWallet.DefaultWallet.BraveWalletPreferExtension,
-  activeOrigin: '',
+  activeOrigin: {
+    origin: '',
+    eTldPlusOne: ''
+  },
   gasEstimates: undefined,
   connectedAccounts: [],
   isMetaMaskInstalled: false,
@@ -365,7 +368,7 @@ reducer.on(WalletActions.defaultWalletUpdated, (state: any, payload: BraveWallet
 reducer.on(WalletActions.activeOriginChanged, (state: any, payload: ActiveOriginChanged) => {
   return {
     ...state,
-    activeOrigin: payload.origin
+    activeOrigin: payload
   }
 })
 

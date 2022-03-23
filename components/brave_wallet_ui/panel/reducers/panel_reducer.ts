@@ -20,7 +20,10 @@ import { HardwareWalletResponseCodeType } from '../../common/hardware/types'
 
 const defaultState: PanelState = {
   hasInitialized: false,
-  connectToSiteOrigin: '',
+  connectToSiteOrigin: {
+    origin: '',
+    eTldPlusOne: ''
+  },
   selectedPanel: 'main',
   panelTitle: '',
   connectingAccounts: [],
@@ -35,9 +38,9 @@ const defaultState: PanelState = {
     decimals: 18,
     coin: BraveWallet.CoinType.ETH,
     data: {
-       ethData: {
+      ethData: {
         isEip1559: true
-       }
+      }
     }
   },
   swapQuote: undefined,

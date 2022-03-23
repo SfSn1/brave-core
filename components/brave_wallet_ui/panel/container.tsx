@@ -318,7 +318,7 @@ function Container (props: Props) {
   const onSubmit = () => {
     props.walletPanelActions.connectToSite({
       selectedAccounts,
-      siteToConnectTo: connectToSiteOrigin
+      siteToConnectTo: connectToSiteOrigin.origin
     })
   }
   const primaryAction = () => {
@@ -336,7 +336,7 @@ function Container (props: Props) {
     } else {
       props.walletPanelActions.cancelConnectToSite({
         selectedAccounts,
-        siteToConnectTo: props.panel.connectToSiteOrigin
+        siteToConnectTo: props.panel.connectToSiteOrigin.origin
       })
       setSelectedAccounts([])
       setReadyToConnect(false)
@@ -584,7 +584,7 @@ function Container (props: Props) {
   }
 
   const isConnectedToSite = React.useMemo((): boolean => {
-    if (activeOrigin === WalletOrigin) {
+    if (activeOrigin.origin === WalletOrigin) {
       return true
     } else {
       return connectedAccounts.some(account => account.address === selectedAccount.address)
@@ -645,7 +645,7 @@ function Container (props: Props) {
         <LongWrapper>
           <ConfirmTransactionPanel
             defaultCurrencies={defaultCurrencies}
-            siteURL={activeOrigin}
+            originInfo={activeOrigin}
             onConfirm={onConfirmTransaction}
             onReject={onRejectTransaction}
             onRejectAllTransactions={onRejectAllTransactions}
@@ -690,7 +690,7 @@ function Container (props: Props) {
       <PanelWrapper isLonger={true}>
         <LongWrapper>
           <AllowAddChangeNetworkPanel
-            siteOrigin={activeOrigin}
+            originInfo={activeOrigin}
             onApproveAddNetwork={onApproveAddNetwork}
             onApproveChangeNetwork={onApproveChangeNetwork}
             onCancel={onCancelAddNetwork}
@@ -708,7 +708,7 @@ function Container (props: Props) {
       <PanelWrapper isLonger={true}>
         <LongWrapper>
           <AllowAddChangeNetworkPanel
-            siteOrigin={switchChainRequest.origin.url}
+            originInfo={activeOrigin}
             onApproveAddNetwork={onApproveAddNetwork}
             onApproveChangeNetwork={onApproveChangeNetwork}
             onCancel={onCancelChangeNetwork}
@@ -755,6 +755,7 @@ function Container (props: Props) {
             encryptionKeyPayload={getEncryptionPublicKeyRequest}
             accounts={accounts}
             selectedNetwork={selectedNetwork}
+            eTldPlusOne={activeOrigin.eTldPlusOne}
             onCancel={
               selectedPanel === 'provideEncryptionKey'
                 ? onCancelProvideEncryptionKey
@@ -862,7 +863,7 @@ function Container (props: Props) {
       <PanelWrapper isLonger={true}>
         <ConnectWithSiteWrapper>
           <ConnectWithSite
-            siteURL={connectToSiteOrigin}
+            originInfo={connectToSiteOrigin}
             isReady={readyToConnect}
             accounts={accountsToConnect}
             primaryAction={primaryAction}
@@ -1055,8 +1056,8 @@ function Container (props: Props) {
 
   if (selectedPanel === 'sitePermissions') {
     return (
-      <PanelWrapper isLonger={false}>
-        <StyledExtensionWrapper>
+      <PanelWrapper isLonger={true}>
+        <LongWrapper>
           <Panel
             navAction={navigateTo}
             title={panelTitle}
@@ -1069,11 +1070,11 @@ function Container (props: Props) {
               onDisconnect={removeSitePermission}
               onSwitchAccount={onSwitchAccount}
               selectedAccount={selectedAccount}
-              siteURL={activeOrigin}
+              originInfo={activeOrigin}
               onAddAccount={onAddAccount}
             />
           </Panel>
-        </StyledExtensionWrapper>
+        </LongWrapper>
       </PanelWrapper>
     )
   }
@@ -1089,7 +1090,7 @@ function Container (props: Props) {
         navAction={navigateTo}
         onLockWallet={onLockWallet}
         onOpenSettings={onOpenSettings}
-        activeOrigin={activeOrigin}
+        originInfo={activeOrigin}
         isSwapSupported={isSwapSupported}
       />
     </PanelWrapper>
