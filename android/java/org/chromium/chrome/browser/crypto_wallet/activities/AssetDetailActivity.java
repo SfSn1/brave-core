@@ -45,6 +45,7 @@ import org.chromium.chrome.browser.crypto_wallet.TxServiceFactory;
 import org.chromium.chrome.browser.crypto_wallet.activities.AccountDetailActivity;
 import org.chromium.chrome.browser.crypto_wallet.activities.BuySendSwapActivity;
 import org.chromium.chrome.browser.crypto_wallet.adapters.WalletCoinAdapter;
+import org.chromium.chrome.browser.crypto_wallet.fragments.ApproveTxBottomSheetDialogFragment;
 import org.chromium.chrome.browser.crypto_wallet.listeners.OnWalletListItemClick;
 import org.chromium.chrome.browser.crypto_wallet.model.WalletListItemModel;
 import org.chromium.chrome.browser.crypto_wallet.observers.ApprovedTxObserver;
@@ -187,6 +188,8 @@ public class AssetDetailActivity
             }
         });
 
+        ApproveTxBottomSheetDialogFragment.addApprovedTxObserver(this);
+
         onInitialLayoutInflationComplete();
     }
 
@@ -197,6 +200,12 @@ public class AssetDetailActivity
             setUpAccountList();
             mHasNewTx = false;
         }
+    }
+
+    @Override
+    public void onDestroy() {
+        ApproveTxBottomSheetDialogFragment.removeApprovedTxObserver(this);
+        super.onDestroy();
     }
 
     private void getPriceHistory(String asset, String vsAsset, int timeframe) {
@@ -304,10 +313,10 @@ public class AssetDetailActivity
     }
 
     @Override
-    public void OnTxApprovedRejected(boolean approved, String accountName, String txId) {}
+    public void onTxApprovedRejected(boolean approved, String accountName, String txId) {}
 
     @Override
-    public void OnTxPending(String accountName, String txId) {}
+    public void onTxPending(String accountName, String txId) {}
 
     @Override
     public void onTransactionStatusChanged(TransactionInfo txInfo) {

@@ -39,6 +39,7 @@ import org.chromium.chrome.browser.crypto_wallet.KeyringServiceFactory;
 import org.chromium.chrome.browser.crypto_wallet.TxServiceFactory;
 import org.chromium.chrome.browser.crypto_wallet.activities.AddAccountActivity;
 import org.chromium.chrome.browser.crypto_wallet.adapters.WalletCoinAdapter;
+import org.chromium.chrome.browser.crypto_wallet.fragments.ApproveTxBottomSheetDialogFragment;
 import org.chromium.chrome.browser.crypto_wallet.listeners.OnWalletListItemClick;
 import org.chromium.chrome.browser.crypto_wallet.model.WalletListItemModel;
 import org.chromium.chrome.browser.crypto_wallet.observers.ApprovedTxObserver;
@@ -115,6 +116,8 @@ public class AccountDetailActivity
                 startActivityForResult(addAccountActivityIntent, Utils.ACCOUNT_REQUEST_CODE);
             }
         });
+
+        ApproveTxBottomSheetDialogFragment.addApprovedTxObserver(this);
 
         onInitialLayoutInflationComplete();
     }
@@ -225,10 +228,10 @@ public class AccountDetailActivity
     }
 
     @Override
-    public void OnTxApprovedRejected(boolean approved, String accountName, String txId) {}
+    public void onTxApprovedRejected(boolean approved, String accountName, String txId) {}
 
     @Override
-    public void OnTxPending(String accountName, String txId) {}
+    public void onTxPending(String accountName, String txId) {}
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -249,6 +252,12 @@ public class AccountDetailActivity
         Intent returnIntent = new Intent();
         setResult(Activity.RESULT_OK, returnIntent);
         finish();
+    }
+
+    @Override
+    public void onDestroy() {
+        ApproveTxBottomSheetDialogFragment.removeApprovedTxObserver(this);
+        super.onDestroy();
     }
 
     private AccountInfo getThisAccountInfo() {

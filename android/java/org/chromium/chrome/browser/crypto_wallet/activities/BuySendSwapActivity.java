@@ -180,6 +180,7 @@ public class BuySendSwapActivity extends BraveWalletBaseActivity
 
     @Override
     public void onDestroy() {
+        ApproveTxBottomSheetDialogFragment.removeApprovedTxObserver(this);
         if (mCameraSourcePreview != null) {
             mCameraSourcePreview.release();
         }
@@ -224,6 +225,8 @@ public class BuySendSwapActivity extends BraveWalletBaseActivity
 
         mSendToValidation = findViewById(R.id.to_send_error_text);
         mFromSendValueValidation = findViewById(R.id.from_send_value_error_text);
+
+        ApproveTxBottomSheetDialogFragment.addApprovedTxObserver(this);
 
         onInitialLayoutInflationComplete();
         mInitialLayoutInflationComplete = true;
@@ -1315,20 +1318,19 @@ public class BuySendSwapActivity extends BraveWalletBaseActivity
         }
         ApproveTxBottomSheetDialogFragment approveTxBottomSheetDialogFragment =
                 ApproveTxBottomSheetDialogFragment.newInstance(txInfo, accountName);
-        approveTxBottomSheetDialogFragment.setApprovedTxObserver(this);
         approveTxBottomSheetDialogFragment.show(
                 getSupportFragmentManager(), ApproveTxBottomSheetDialogFragment.TAG_FRAGMENT);
     }
 
     @Override
-    public void OnTxApprovedRejected(boolean approved, String accountName, String txId) {
+    public void onTxApprovedRejected(boolean approved, String accountName, String txId) {
         if (approved) {
             finish();
         }
     }
 
     @Override
-    public void OnTxPending(String accountName, String txId) {}
+    public void onTxPending(String accountName, String txId) {}
 
     public void showSwapButtonText() {
         mBtnBuySendSwap.setText(getString(R.string.swap));

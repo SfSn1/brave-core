@@ -103,6 +103,13 @@ public class PortfolioFragment
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+        ApproveTxBottomSheetDialogFragment.addApprovedTxObserver(this);
+    }
+
+    @Override
+    public void onDestroy() {
+        ApproveTxBottomSheetDialogFragment.removeApprovedTxObserver(this);
+        super.onDestroy();
     }
 
     @Nullable
@@ -411,12 +418,12 @@ public class PortfolioFragment
     }
 
     @Override
-    public void OnTxPending(String accountName, String txId) {
+    public void onTxPending(String accountName, String txId) {
         updatePortfolioGetPendingTx(true);
     }
 
     @Override
-    public void OnTxApprovedRejected(boolean approved, String accountName, String txId) {
+    public void onTxApprovedRejected(boolean approved, String accountName, String txId) {
         assert mPendingTxInfos != null;
         if (!hasPendingTx()) {
             return;
@@ -456,7 +463,6 @@ public class PortfolioFragment
             }
             ApproveTxBottomSheetDialogFragment approveTxBottomSheetDialogFragment =
                     ApproveTxBottomSheetDialogFragment.newInstance(txInfos[0], key);
-            approveTxBottomSheetDialogFragment.setApprovedTxObserver(this);
             approveTxBottomSheetDialogFragment.show(
                     getFragmentManager(), ApproveTxBottomSheetDialogFragment.TAG_FRAGMENT);
             break;

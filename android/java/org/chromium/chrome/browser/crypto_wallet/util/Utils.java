@@ -79,7 +79,6 @@ import org.chromium.chrome.browser.crypto_wallet.adapters.WalletCoinAdapter;
 import org.chromium.chrome.browser.crypto_wallet.fragments.ApproveTxBottomSheetDialogFragment;
 import org.chromium.chrome.browser.crypto_wallet.listeners.OnWalletListItemClick;
 import org.chromium.chrome.browser.crypto_wallet.model.WalletListItemModel;
-import org.chromium.chrome.browser.crypto_wallet.observers.ApprovedTxObserver;
 import org.chromium.chrome.browser.profiles.Profile;
 import org.chromium.chrome.browser.util.TabUtils;
 import org.chromium.ui.widget.Toast;
@@ -1000,11 +999,8 @@ public class Utils {
             AppCompatActivity activity, String accountName) {
         assert txInfo != null;
         if (txInfo.txStatus == TransactionStatus.UNAPPROVED) {
-            if (activity instanceof ApprovedTxObserver) {
-                showApproveDialog(txInfo, accountName, activity, ((ApprovedTxObserver) activity));
-                return;
-            }
-            throw new RuntimeException("Activity must implement ApprovedTxObserver");
+            showApproveDialog(txInfo, accountName, activity);
+            return;
         } else {
             if (txInfo.txHash == null) {
                 return;
@@ -1323,10 +1319,9 @@ public class Utils {
     }
 
     private static void showApproveDialog(TransactionInfo txInfo, String accountName,
-            AppCompatActivity activity, ApprovedTxObserver approvedTxObserver) {
+            AppCompatActivity activity) {
         ApproveTxBottomSheetDialogFragment approveTxBottomSheetDialogFragment =
                 ApproveTxBottomSheetDialogFragment.newInstance(txInfo, accountName);
-        approveTxBottomSheetDialogFragment.setApprovedTxObserver(approvedTxObserver);
         approveTxBottomSheetDialogFragment.show(activity.getSupportFragmentManager(),
                 ApproveTxBottomSheetDialogFragment.TAG_FRAGMENT);
     }

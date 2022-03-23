@@ -28,6 +28,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.android.material.tabs.TabLayout;
 
 import org.chromium.base.Log;
+import org.chromium.base.ObserverList;
 import org.chromium.brave_wallet.mojom.AssetPriceTimeframe;
 import org.chromium.brave_wallet.mojom.AssetRatioService;
 import org.chromium.brave_wallet.mojom.BlockchainRegistry;
@@ -53,12 +54,13 @@ import java.util.concurrent.Executors;
 public class ApproveTxBottomSheetDialogFragment extends BottomSheetDialogFragment {
     public static final String TAG_FRAGMENT = ApproveTxBottomSheetDialogFragment.class.getName();
 
+    private static ObserverList<ApprovedTxObserver> sApprovedTxObserver = new ObserverList<>();
+
     private TransactionInfo mTxInfo;
     private String mAccountName;
     private boolean mRejected;
     private boolean mApproved;
     private double mTotalPrice;
-    private ApprovedTxObserver mApprovedTxObserver;
     private ExecutorService mExecutor;
     private Handler mHandler;
     private String mChainSymbol;
@@ -80,10 +82,18 @@ public class ApproveTxBottomSheetDialogFragment extends BottomSheetDialogFragmen
         mChainDecimals = 18;
     }
 
-    // TODO: This needs to be changed to something that broadcasts to all classes implementing
-    // ApprovedTxObserver.
-    public void setApprovedTxObserver(ApprovedTxObserver approvedTxObserver) {
-        mApprovedTxObserver = approvedTxObserver;
+    /**
+     * Add an observer to be notified when a transaction is approved or rejected.
+     */
+    public static void addApprovedTxObserver(ApprovedTxObserver approvedTxObserver) {
+        sApprovedTxObserver.addObserver(approvedTxObserver);
+    }
+
+    /**
+     * Remove an observer of transactions changes.
+     */
+    public static void removeApprovedTxObserver(ApprovedTxObserver approvedTxObserver) {
+        sApprovedTxObserver.removeObserver(approvedTxObserver);
     }
 
     private AssetRatioService getAssetRatioService() {
@@ -148,11 +158,11 @@ public class ApproveTxBottomSheetDialogFragment extends BottomSheetDialogFragmen
     @Override
     public void onDismiss(DialogInterface dialog) {
         super.onDismiss(dialog);
-        if (mApprovedTxObserver != null) {
+        for (ApprovedTxObserver approvedTxObserver : sApprovedTxObserver) {
             if (mRejected || mApproved) {
-                mApprovedTxObserver.OnTxApprovedRejected(mApproved, mAccountName, mTxInfo.id);
+                approvedTxObserver.onTxApprovedRejected(mApproved, mAccountName, mTxInfo.id);
             } else {
-                mApprovedTxObserver.OnTxPending(mAccountName, mTxInfo.id);
+                approvedTxObserver.onTxPending(mAccountName, mTxInfo.id);
             }
         }
     }
