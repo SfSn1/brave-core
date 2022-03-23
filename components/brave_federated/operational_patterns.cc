@@ -10,10 +10,12 @@
 #include "brave/components/brave_federated/operational_patterns.h"
 
 #include "base/json/json_writer.h"
+#include "base/logging.h"
 #include "base/strings/string_util.h"
 #include "base/time/time.h"
 #include "base/timer/timer.h"
 #include "brave/components/brave_federated/features.h"
+#include "brave/components/brave_federated/operational_patterns_util.h"
 #include "brave/components/brave_stats/browser/brave_stats_updater_util.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "components/prefs/pref_service.h"
@@ -25,8 +27,6 @@
 
 namespace {
 
-constexpr int kDefaultResponseCode = -1;
-
 static constexpr char federatedLearningUrl[] = "https://fl.brave.com/";
 
 constexpr char kLastCheckedSlotPrefName[] = "brave.federated.last_checked_slot";
@@ -34,12 +34,14 @@ constexpr char kCollectionIdPrefName[] = "brave.federated.collection_id";
 constexpr char kCollectionIdExpirationPrefName[] =
     "brave.federated.collection_id_expiration";
 
+constexpr int kLastCheckedSlotInitialValue = -1;
+
 constexpr int kMinutesBeforeRetry = 5;
 
 net::NetworkTrafficAnnotationTag GetNetworkTrafficAnnotationTag() {
   return net::DefineNetworkTrafficAnnotation("operational_pattern", R"(
         semantics {
-          sender: "Operational Patterns Service"
+          sender: "Operational Patterns"
           description:
             "Report of anonymized engagement statistics. For more info see "
             "https://github.com/brave/brave-browser/wiki/Operational-Patterns"
@@ -75,41 +77,53 @@ OperationalPatterns::OperationalPatterns(
 OperationalPatterns::~OperationalPatterns() {}
 
 void OperationalPatterns::RegisterPrefs(PrefRegistrySimple* registry) {
-  registry->RegisterIntegerPref(kLastCheckedSlotPrefName, kDefaultResponseCode);
+  registry->RegisterIntegerPref(kLastCheckedSlotPrefName,
+                                kLastCheckedSlotInitialValue);
   registry->RegisterStringPref(kCollectionIdPrefName, {});
   registry->RegisterTimePref(kCollectionIdExpirationPrefName, base::Time());
 }
 
+bool OperationalPatterns::IsRunning() {
+  return is_running_;
+}
+
 void OperationalPatterns::Start() {
-  DCHECK(!simulate_local_training_step_timer_);
-  DCHECK(!collection_slot_periodic_timer_);
+  VLOG(1) << "Starting operational patterns";
+  is_running_ = true;
+
+  DCHECK(!mock_training_timer_);
+  DCHECK(!collection_timer_);
 
   LoadPrefs();
   MaybeResetCollectionId();
 
-  simulate_local_training_step_timer_ =
-      std::make_unique<base::RetainingOneShotTimer>();
-  simulate_local_training_step_timer_->Start(
+  mock_training_timer_ = std::make_unique<base::RetainingOneShotTimer>();
+  mock_training_timer_->Start(
       FROM_HERE,
       base::Seconds(brave_federated::features::
                         GetSimulateLocalTrainingStepDurationValue() *
                     60),
-      this, &OperationalPatterns::OnSimulateLocalTrainingStepTimerFired);
+      this, &OperationalPatterns::OnMockTrainingTimerFired);
 
-  collection_slot_periodic_timer_ = std::make_unique<base::RepeatingTimer>();
-  collection_slot_periodic_timer_->Start(
+  collection_timer_ = std::make_unique<base::RepeatingTimer>();
+  collection_timer_->Start(
       FROM_HERE,
       base::Seconds(brave_federated::features::GetCollectionSlotSizeValue() *
                     60 / 2),
-      this, &OperationalPatterns::OnCollectionSlotStartTimerFired);
+      this, &OperationalPatterns::OnCollectionTimerFired);
 }
 
 void OperationalPatterns::Stop() {
-  simulate_local_training_step_timer_.reset();
-  collection_slot_periodic_timer_.reset();
+  VLOG(1) << "Stopping operational patterns";
+  is_running_ = false;
 
-  SendDelete();
+  mock_training_timer_.reset();
+  collection_timer_.reset();
+
+  SendDeletePing();
 }
+
+///////////////////////////////////////////////////////////////////////////////
 
 void OperationalPatterns::LoadPrefs() {
   last_checked_slot_ = pref_service_->GetInteger(kLastCheckedSlotPrefName);
@@ -131,85 +145,37 @@ void OperationalPatterns::ClearPrefs() {
   pref_service_->ClearPref(kCollectionIdExpirationPrefName);
 }
 
-void OperationalPatterns::OnCollectionSlotStartTimerFired() {
-  simulate_local_training_step_timer_->Reset();
+void OperationalPatterns::OnCollectionTimerFired() {
+  mock_training_timer_->Reset();
 }
 
-void OperationalPatterns::OnSimulateLocalTrainingStepTimerFired() {
-  SendCollectionSlot();
+void OperationalPatterns::OnMockTrainingTimerFired() {
+  SendCollectionPing();
 }
 
-void OperationalPatterns::PrepareSend(
-    std::unique_ptr<network::ResourceRequest> resource_request,
-    std::string payload) {
-  url_loader_ = network::SimpleURLLoader::Create(
-      std::move(resource_request), GetNetworkTrafficAnnotationTag());
-  url_loader_->AttachStringForUpload(payload, "application/json");
-}
-
-void OperationalPatterns::SendCollectionSlot() {
-  current_collected_slot_ = GetCurrentCollectionSlot();
-  if (current_collected_slot_ == last_checked_slot_) {
-    return;
-  }
-
-  MaybeResetCollectionId();
-
-  auto resource_request = std::make_unique<network::ResourceRequest>();
-  resource_request->url = GURL(federatedLearningUrl);
-  resource_request->headers.SetHeader("X-Brave-FL-Operational-Patterns", "?1");
-  resource_request->credentials_mode = network::mojom::CredentialsMode::kOmit;
-  resource_request->method = "POST";
-
-  PrepareSend(std::move(resource_request), BuildPayload());
-
-  url_loader_->DownloadHeadersOnly(
-      url_loader_factory_.get(),
-      base::BindOnce(&OperationalPatterns::OnCollectionSlotUploadComplete,
-                     base::Unretained(this)));
-}
-
-void OperationalPatterns::SendDelete() {
-  auto resource_request = std::make_unique<network::ResourceRequest>();
-  resource_request->url = GURL(federatedLearningUrl);
-  resource_request->headers.SetHeader("X-Brave-FL-Operational-Patterns", "?1");
-  resource_request->credentials_mode = network::mojom::CredentialsMode::kOmit;
-  resource_request->method = "DELETE";
-
-  PrepareSend(std::move(resource_request), BuildDeletePayload());
-
-  url_loader_->DownloadHeadersOnly(
-      url_loader_factory_.get(),
-      base::BindOnce(&OperationalPatterns::OnDeleteUploadComplete,
-                     base::Unretained(this)));
-}
-
-void OperationalPatterns::OnCollectionSlotUploadComplete(
-    scoped_refptr<net::HttpResponseHeaders> headers) {
-  int response_code = kDefaultResponseCode;
-  if (headers)
-    response_code = headers->response_code();
-  if (response_code == net::HTTP_OK) {
-    last_checked_slot_ = current_collected_slot_;
-    SavePrefs();
+void OperationalPatterns::MaybeResetCollectionId() {
+  const base::Time now = base::Time::Now();
+  if (collection_id_.empty() || (!collection_id_expiration_time_.is_null() &&
+                                 now > collection_id_expiration_time_)) {
+    ResetCollectionId();
   }
 }
 
-void OperationalPatterns::OnDeleteUploadComplete(
-    scoped_refptr<net::HttpResponseHeaders> headers) {
-  int response_code = kDefaultResponseCode;
-  if (headers)
-    response_code = headers->response_code();
-  if (response_code == net::HTTP_OK) {
-    ClearPrefs();
-  } else {
-    auto retry_timer = std::make_unique<base::RetainingOneShotTimer>();
-    retry_timer->Start(FROM_HERE, base::Seconds(kMinutesBeforeRetry * 60), this,
-                       &OperationalPatterns::SendDelete);
-  }
+void OperationalPatterns::ResetCollectionId() {
+  VLOG(1) << "Resetting collection ID";
+
+  const base::Time now = base::Time::Now();
+  collection_id_ =
+      base::ToUpperASCII(base::UnguessableToken::Create().ToString());
+  collection_id_expiration_time_ =
+      now + base::Seconds(brave_federated::features::GetCollectionIdLifetime() *
+                          24 * 60 * 60);
+  SavePrefs();
 }
 
-std::string OperationalPatterns::BuildPayload() const {
+// Collection Ping ------------------------------------------------------------
+
+std::string OperationalPatterns::BuildCollectionPingPayload() const {
   base::Value root(base::Value::Type::DICTIONARY);
 
   root.SetKey("collection_id", base::Value(collection_id_));
@@ -224,7 +190,57 @@ std::string OperationalPatterns::BuildPayload() const {
   return result;
 }
 
-std::string OperationalPatterns::BuildDeletePayload() const {
+void OperationalPatterns::SendCollectionPing() {
+  VLOG(1) << "Sending collection ping";
+
+  current_collected_slot_ = GetCurrentCollectionSlot();
+  if (current_collected_slot_ == last_checked_slot_) {
+    return;
+  }
+
+  MaybeResetCollectionId();
+
+  auto resource_request = std::make_unique<network::ResourceRequest>();
+  resource_request->url = GURL(federatedLearningUrl);
+  resource_request->headers.SetHeader("X-Brave-FL-Operational-Patterns", "?1");
+  resource_request->credentials_mode = network::mojom::CredentialsMode::kOmit;
+  resource_request->method = "POST";
+
+  VLOG(2) << resource_request->method << " " << resource_request->url;
+
+  const std::string payload = BuildCollectionPingPayload();
+  VLOG(2) << "Payload " << payload;
+
+  url_loader_ = network::SimpleURLLoader::Create(
+      std::move(resource_request), GetNetworkTrafficAnnotationTag());
+  url_loader_->AttachStringForUpload(payload, "application/json");
+  url_loader_->DownloadHeadersOnly(
+      url_loader_factory_.get(),
+      base::BindOnce(&OperationalPatterns::OnCollectionPingSent,
+                     base::Unretained(this)));
+}
+
+void OperationalPatterns::OnCollectionPingSent(
+    scoped_refptr<net::HttpResponseHeaders> headers) {
+  if (!headers) {
+    VLOG(1) << "Failed to upload collection ping";
+    return;
+  }
+
+  int response_code = headers->response_code();
+  if (response_code == net::HTTP_OK) {
+    VLOG(1) << "Successfully uploaded collection ping";
+
+    last_checked_slot_ = current_collected_slot_;
+    SavePrefs();
+  } else {
+    VLOG(1) << "Failed to send collection ping with HTTP " << response_code;
+  }
+}
+
+// Delete Ping ---------------------------------------------------------------
+
+std::string OperationalPatterns::BuildDeletePingPayload() const {
   base::Value root(base::Value::Type::DICTIONARY);
 
   root.SetKey("collection_id", base::Value(collection_id_));
@@ -237,30 +253,50 @@ std::string OperationalPatterns::BuildDeletePayload() const {
   return result;
 }
 
-int OperationalPatterns::GetCurrentCollectionSlot() const {
-  base::Time::Exploded now;
-  base::Time::Now().LocalExplode(&now);
+void OperationalPatterns::SendDeletePing() {
+  VLOG(1) << "Sending delete ping";
 
-  return ((now.day_of_month - 1) * 24 * 60 + now.hour * 60 + now.minute) /
-         brave_federated::features::GetCollectionSlotSizeValue();
+  auto resource_request = std::make_unique<network::ResourceRequest>();
+  resource_request->url = GURL(federatedLearningUrl);
+  resource_request->headers.SetHeader("X-Brave-FL-Operational-Patterns", "?1");
+  resource_request->credentials_mode = network::mojom::CredentialsMode::kOmit;
+  resource_request->method = "DELETE";
+
+  VLOG(2) << resource_request->method << " " << resource_request->url;
+
+  const std::string payload = BuildDeletePingPayload();
+  VLOG(2) << "Payload " << payload;
+
+  url_loader_ = network::SimpleURLLoader::Create(
+      std::move(resource_request), GetNetworkTrafficAnnotationTag());
+  url_loader_->AttachStringForUpload(payload, "application/json");
+  url_loader_->DownloadHeadersOnly(
+      url_loader_factory_.get(),
+      base::BindOnce(&OperationalPatterns::OnDeletePingSent,
+                     base::Unretained(this)));
 }
 
-void OperationalPatterns::MaybeResetCollectionId() {
-  const base::Time now = base::Time::Now();
-  if (collection_id_.empty() || (!collection_id_expiration_time_.is_null() &&
-                                 now > collection_id_expiration_time_)) {
-    ResetCollectionId();
+void OperationalPatterns::OnDeletePingSent(
+    scoped_refptr<net::HttpResponseHeaders> headers) {
+  if (!headers) {
+    VLOG(1) << "Failed to send delete";
   }
-}
 
-void OperationalPatterns::ResetCollectionId() {
-  const base::Time now = base::Time::Now();
-  collection_id_ =
-      base::ToUpperASCII(base::UnguessableToken::Create().ToString());
-  collection_id_expiration_time_ =
-      now + base::Seconds(brave_federated::features::GetCollectionIdLifetime() *
-                          24 * 60 * 60);
-  SavePrefs();
+  int response_code = headers->response_code();
+  if (response_code == net::HTTP_OK) {
+    VLOG(1) << "Successfully sent delete";
+
+    ClearPrefs();
+  } else {
+    VLOG(1) << "Failed to send delete with HTTP " << response_code;
+
+    auto retry_timer = std::make_unique<base::RetainingOneShotTimer>();
+    retry_timer->Start(FROM_HERE, base::Seconds(kMinutesBeforeRetry * 60), this,
+                       &OperationalPatterns::SendDeletePing);
+
+    VLOG(1) << "Retry in " << kMinutesBeforeRetry << " minutes";
+    // TODO(Moritz Haller): Delete retry timer in case collection ping was sent
+  }
 }
 
 }  // namespace brave_federated

@@ -9,9 +9,9 @@
 // users engage with the browser over a collection period. A collection period
 // is divided into collection slots (i.e. 30m intervals). Two timers are
 // instatiated at startup:
-// 1. |collection_slot_periodic_timer_| fires every |collection_slot_size_|/2
+// 1. |collection_timer_| fires every |collection_slot_size_|/2
 // minutes (at most twice per collection slot) and starts the next timer.
-// 2. |simulate_local_training_step_timer_| fires a set number of minutes after
+// 2. |mock_training_timer_| fires a set number of minutes after
 // the |collection_slot_periodic_timer_|. When this timer fires, a ping is sent
 // to the server.
 //
@@ -20,8 +20,8 @@
 //
 //-------------------------------------------------------------------------------
 
-#ifndef BRAVE_COMPONENTS_BRAVE_FEDERATED_OPERATIONAL_PATTERNS_H_
-#define BRAVE_COMPONENTS_BRAVE_FEDERATED_OPERATIONAL_PATTERNS_H_
+#ifndef BRAVE_COMPONENTS_BRAVE_FEDERATED_OPERATIONAL_PATTERNS_OPERATIONAL_PATTERNS_H_
+#define BRAVE_COMPONENTS_BRAVE_FEDERATED_OPERATIONAL_PATTERNS_OPERATIONAL_PATTERNS_H_
 
 #include <memory>
 #include <string>
@@ -58,39 +58,40 @@ class OperationalPatterns final {
 
   static void RegisterPrefs(PrefRegistrySimple* registry);
 
+  bool IsRunning();
+
   void Start();
   void Stop();
 
  private:
-  void OnCollectionSlotStartTimerFired();
-  void OnSimulateLocalTrainingStepTimerFired();
-  void OnCollectionSlotUploadComplete(
-      scoped_refptr<net::HttpResponseHeaders> headers);
-  void OnDeleteUploadComplete(scoped_refptr<net::HttpResponseHeaders> headers);
-
-  void PrepareSend(std::unique_ptr<network::ResourceRequest> resource_request,
-                   std::string payload);
-  void SendCollectionSlot();
-  void SendDelete();
-
   void LoadPrefs();
   void SavePrefs();
   void ClearPrefs();
 
-  std::string BuildPayload() const;
-  std::string BuildDeletePayload() const;
-  int GetCurrentCollectionSlot() const;
+  void OnCollectionTimerFired();
+  void OnMockTrainingTimerFired();
 
-  void ResetCollectionId();
   void MaybeResetCollectionId();
+  void ResetCollectionId();
 
-  raw_ptr<PrefService> pref_service_ = nullptr;
-  std::unique_ptr<base::RepeatingTimer> collection_slot_periodic_timer_;
-  std::unique_ptr<base::RetainingOneShotTimer>
-      simulate_local_training_step_timer_;
-  scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory_;
+  std::string BuildCollectionPingPayload() const;
+  void SendCollectionPing();
+  void OnCollectionPingSent(scoped_refptr<net::HttpResponseHeaders> headers);
+
+  std::string BuildDeletePingPayload() const;
+  void SendDeletePing();
+  void OnDeletePingSent(scoped_refptr<net::HttpResponseHeaders> headers);
+
+  raw_ptr<PrefService> pref_service_ = nullptr;  // NOT OWNED
+  scoped_refptr<network::SharedURLLoaderFactory>
+      url_loader_factory_;  // NOT OWNED
+
   std::unique_ptr<network::SimpleURLLoader> url_loader_;
 
+  std::unique_ptr<base::RepeatingTimer> collection_timer_;
+  std::unique_ptr<base::RetainingOneShotTimer> mock_training_timer_;
+
+  bool is_running_ = false;
   base::Time collection_id_expiration_time_;
   int current_collected_slot_ = 0;
   int last_checked_slot_ = 0;
@@ -99,4 +100,4 @@ class OperationalPatterns final {
 
 }  // namespace brave_federated
 
-#endif  // BRAVE_COMPONENTS_BRAVE_FEDERATED_OPERATIONAL_PATTERNS_H_
+#endif  // BRAVE_COMPONENTS_BRAVE_FEDERATED_OPERATIONAL_PATTERNS_OPERATIONAL_PATTERNS_H_
