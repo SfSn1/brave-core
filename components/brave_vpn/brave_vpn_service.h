@@ -177,6 +177,8 @@ class BraveVpnService :
   void SetDeviceRegion(const std::string& name);
   void SetFallbackDeviceRegion();
   void SetDeviceRegion(const brave_vpn::mojom::Region& region);
+  void SetRegionToPrefs(const std::string& key,
+                        const brave_vpn::mojom::Region& region);
 
   std::string GetCurrentTimeZone();
   void ScheduleBackgroundRegionDataFetch();
