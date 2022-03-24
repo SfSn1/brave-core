@@ -467,7 +467,7 @@ void BraveVpnService::LoadCachedRegionData() {
   auto* preference =
       prefs_->FindPreference(brave_vpn::prefs::kBraveVPNRegionList);
   if (preference && !preference->IsDefaultValue() &&
-      ParseAndCacheRegionList(preference->GetValue()->Clone())) {
+      ParseAndCacheRegionList(*preference->GetValue())) {
     VLOG(2) << __func__ << " : "
             << "Loaded cached region list";
   }
@@ -539,11 +539,11 @@ void BraveVpnService::OnFetchRegionList(bool background_fetch,
     prefs_->Set(brave_vpn::prefs::kBraveVPNRegionList, *value);
 
     if (background_fetch) {
-      ParseAndCacheRegionList(std::move(*value));
+      ParseAndCacheRegionList(*value);
       return;
     }
 
-    if (ParseAndCacheRegionList(std::move(*value))) {
+    if (ParseAndCacheRegionList(*value)) {
       VLOG(2) << "Got valid region list";
       // Set default device region and it'll be updated when received valid
       // timezone info.
@@ -562,7 +562,7 @@ void BraveVpnService::OnFetchRegionList(bool background_fetch,
   }
 }
 
-bool BraveVpnService::ParseAndCacheRegionList(base::Value region_value) {
+bool BraveVpnService::ParseAndCacheRegionList(const base::Value& region_value) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(region_value.is_list());
   if (!region_value.is_list())
@@ -607,7 +607,7 @@ void BraveVpnService::OnFetchTimezones(const std::string& timezones_list,
   absl::optional<base::Value> value = base::JSONReader::Read(timezones_list);
   if (success && value && value->is_list()) {
     VLOG(2) << "Got valid timezones list";
-    ParseAndCacheDeviceRegionName(std::move(*value));
+    ParseAndCacheDeviceRegionName(*value);
   } else {
     VLOG(2) << "Failed to get invalid timezones list";
   }
@@ -617,7 +617,7 @@ void BraveVpnService::OnFetchTimezones(const std::string& timezones_list,
 }
 
 void BraveVpnService::ParseAndCacheDeviceRegionName(
-    base::Value timezones_value) {
+    const base::Value& timezones_value) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   DCHECK(timezones_value.is_list());
 

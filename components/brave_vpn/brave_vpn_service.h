@@ -165,9 +165,9 @@ class BraveVpnService :
   void OnFetchRegionList(bool background_fetch,
                          const std::string& region_list,
                          bool success);
-  bool ParseAndCacheRegionList(base::Value region_value);
+  bool ParseAndCacheRegionList(const base::Value& region_value);
   void OnFetchTimezones(const std::string& timezones_list, bool success);
-  void ParseAndCacheDeviceRegionName(base::Value timezons_value);
+  void ParseAndCacheDeviceRegionName(const base::Value& timezons_value);
   void FetchHostnamesForRegion(const std::string& name);
   void OnFetchHostnames(const std::string& region,
                         const std::string& hostnames,
