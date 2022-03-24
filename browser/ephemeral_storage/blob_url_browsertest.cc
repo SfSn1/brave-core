@@ -16,6 +16,43 @@
 #include "url/gurl.h"
 #include "url/origin.h"
 
+namespace {
+
+constexpr char kCreateBlobScript[] = "URL.createObjectURL(new Blob(['$1']))";
+
+constexpr char kFetchBlobScript[] = R"(
+(async function() {
+  try {
+    const response = await fetch($1);
+    return await response.text();
+  } catch (err) {
+    return 'error';
+  }
+})();)";
+
+constexpr char kWorkerScript[] = R"(
+  (async() => {
+    try {
+      const response = await fetch($1);
+      postMessage(await response.text());
+    } catch (err) {
+      postMessage('error');
+    }
+  })();
+)";
+
+constexpr char kFetchBlobViaWorkerScript[] = R"(
+  new Promise(async (resolve) => {
+    const blobURL = URL.createObjectURL(new Blob([$1]));
+    const dedicatedWorker = new Worker(blobURL);
+    dedicatedWorker.addEventListener('message', e => {
+      resolve(e.data);
+    });
+  });
+)";
+
+}  // namespace
+
 // Tests of the blob: URL scheme. Upstream implemented in
 // content/browser/blob_storage/blob_url_browsertest.cc.
 // Migrated from content_browsertests to brave_browser_tests.
@@ -156,12 +193,6 @@ IN_PROC_BROWSER_TEST_F(BlobUrlBrowserTest, ReplaceStateToAddAuthorityToBlob) {
 }
 
 IN_PROC_BROWSER_TEST_F(BlobUrlBrowserTest, BlobsArePartitioned) {
-  constexpr char kFetchBlobScript[] = R"(
-  (async function() {
-    const response = await fetch($1);
-    return await response.text();
-  })();)";
-
   std::vector<GURL> a_com_registered_blobs;
   {
     auto* a_com_main_frame =
@@ -178,14 +209,24 @@ IN_PROC_BROWSER_TEST_F(BlobUrlBrowserTest, BlobsArePartitioned) {
       int idx = 0;
       for (auto* rfh : a_com_rfhs) {
         a_com_registered_blobs.push_back(
-            GURL(EvalJs(rfh, content::JsReplace(
-                                 "URL.createObjectURL(new Blob(['$1']));", idx))
+            GURL(EvalJs(rfh, content::JsReplace(kCreateBlobScript, idx))
                      .ExtractString()));
+
+        // Blob should be fetchable from the same frame.
         ASSERT_EQ(
+            std::to_string(idx),
             EvalJs(rfh, content::JsReplace(kFetchBlobScript,
                                            a_com_registered_blobs[idx].spec()))
-                .ExtractString(),
-            std::to_string(idx));
+                .ExtractString());
+
+        // Blob should be fetchable from a WebWorker created from the same
+        // frame.
+        ASSERT_EQ(std::to_string(idx),
+                  EvalJs(rfh, content::JsReplace(
+                                  kFetchBlobViaWorkerScript,
+                                  content::JsReplace(
+                                      kWorkerScript,
+                                      a_com_registered_blobs[idx].spec()))));
         ++idx;
       }
     }
@@ -207,20 +248,26 @@ IN_PROC_BROWSER_TEST_F(BlobUrlBrowserTest, BlobsArePartitioned) {
       int idx = 0;
       for (auto* rfh : b_com_rfhs) {
         b_com_registered_blobs.push_back(
-            GURL(EvalJs(rfh, content::JsReplace(
-                                 "URL.createObjectURL(new Blob(['$1']));", idx))
+            GURL(EvalJs(rfh, content::JsReplace(kCreateBlobScript, idx))
                      .ExtractString()));
-        ASSERT_EQ(
-            EvalJs(rfh, content::JsReplace(kFetchBlobScript,
-                                           b_com_registered_blobs[idx].spec()))
-                .ExtractString(),
-            std::to_string(idx));
+        ASSERT_EQ(std::to_string(idx),
+                  EvalJs(rfh, content::JsReplace(
+                                  kFetchBlobScript,
+                                  b_com_registered_blobs[idx].spec())));
 
         // No blobs from a.com should be available.
-        EXPECT_FALSE(
-            EvalJs(rfh, content::JsReplace(kFetchBlobScript,
-                                           a_com_registered_blobs[idx].spec()))
-                .error.empty());
+        EXPECT_EQ("error",
+                  EvalJs(rfh, content::JsReplace(
+                                  kFetchBlobScript,
+                                  a_com_registered_blobs[idx].spec())));
+
+        // No blobs from a.com should be available via WebWorker.
+        EXPECT_EQ("error",
+                  EvalJs(rfh, content::JsReplace(
+                                  kFetchBlobViaWorkerScript,
+                                  content::JsReplace(
+                                      kWorkerScript,
+                                      a_com_registered_blobs[idx].spec()))));
         ++idx;
       }
     }
@@ -242,10 +289,16 @@ IN_PROC_BROWSER_TEST_F(BlobUrlBrowserTest, BlobsArePartitioned) {
     int idx = 0;
     for (auto* rfh : a_com_rfhs) {
       EXPECT_EQ(
+          std::to_string(idx),
           EvalJs(rfh, content::JsReplace(kFetchBlobScript,
-                                         a_com_registered_blobs[idx].spec()))
-              .ExtractString(),
-          std::to_string(idx));
+                                         a_com_registered_blobs[idx].spec())));
+
+      EXPECT_EQ(std::to_string(idx),
+                EvalJs(rfh, content::JsReplace(
+                                kFetchBlobViaWorkerScript,
+                                content::JsReplace(
+                                    kWorkerScript,
+                                    a_com_registered_blobs[idx].spec()))));
       ++idx;
     }
   }

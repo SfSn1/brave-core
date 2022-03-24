@@ -15,6 +15,7 @@
 
 namespace blink {
 class WebContentSettingsClient;
+class WebSecurityOrigin;
 }  // namespace blink
 
 namespace brave {
@@ -23,7 +24,7 @@ typedef base::RepeatingCallback<float(float, size_t)> AudioFarblingCallback;
 
 CORE_EXPORT blink::WebContentSettingsClient* GetContentSettingsClientFor(
     blink::ExecutionContext* context);
-CORE_EXPORT const blink::SecurityOrigin* GetEphemeralOrOriginalSecurityOrigin(
+CORE_EXPORT blink::WebSecurityOrigin GetEphemeralOrOriginalSecurityOrigin(
     blink::ExecutionContext* context);
 CORE_EXPORT BraveFarblingLevel
 GetBraveFarblingLevelFor(blink::ExecutionContext* context,

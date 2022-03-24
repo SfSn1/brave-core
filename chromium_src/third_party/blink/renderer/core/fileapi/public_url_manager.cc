@@ -4,18 +4,19 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "net/base/features.h"
+#include "third_party/blink/public/platform/web_security_origin.h"
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 
 namespace blink {
 namespace {
 
-const SecurityOrigin* GetEphemeralOrOriginalSecurityOrigin(
+WebSecurityOrigin GetEphemeralOrOriginalSecurityOrigin(
     ExecutionContext* context) {
   if (base::FeatureList::IsEnabled(net::features::kBravePartitionBlobStorage)) {
     return brave::GetEphemeralOrOriginalSecurityOrigin(context);
   }
 
-  return context->GetSecurityOrigin();
+  return base::WrapRefCounted(context->GetSecurityOrigin());
 }
 
 }  // namespace

@@ -88,17 +88,17 @@ blink::WebContentSettingsClient* GetContentSettingsClientFor(
   return settings;
 }
 
-const blink::SecurityOrigin* GetEphemeralOrOriginalSecurityOrigin(
+blink::WebSecurityOrigin GetEphemeralOrOriginalSecurityOrigin(
     ExecutionContext* context) {
   if (blink::WebContentSettingsClient* settings =
           GetContentSettingsClientFor(context)) {
     blink::WebSecurityOrigin ephemeral_storage_origin =
         settings->GetEphemeralStorageOriginSync();
-    if (ephemeral_storage_origin.Get()) {
-      return ephemeral_storage_origin.Get();
+    if (!ephemeral_storage_origin.IsNull()) {
+      return ephemeral_storage_origin;
     }
   }
-  return context->GetSecurityOrigin();
+  return base::WrapRefCounted(context->GetSecurityOrigin());
 }
 
 BraveFarblingLevel GetBraveFarblingLevelFor(ExecutionContext* context,

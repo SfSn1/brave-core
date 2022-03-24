@@ -1,5 +1,5 @@
 diff --git a/third_party/blink/renderer/core/fileapi/public_url_manager.cc b/third_party/blink/renderer/core/fileapi/public_url_manager.cc
-index 17c4f34c63b71f6c83c188c1a9ab324b470308b6..c85e7077a0f9db4fe4f294dd3b6581c32a431d76 100644
+index 17c4f34c63b71f6c83c188c1a9ab324b470308b6..4dcb50f260d7b0a22f6c299ca2b6d2f8e51b6d0d 100644
 --- a/third_party/blink/renderer/core/fileapi/public_url_manager.cc
 +++ b/third_party/blink/renderer/core/fileapi/public_url_manager.cc
 @@ -62,7 +62,7 @@ PublicURLManager::PublicURLManager(ExecutionContext* context)
@@ -7,7 +7,7 @@ index 17c4f34c63b71f6c83c188c1a9ab324b470308b6..c85e7077a0f9db4fe4f294dd3b6581c3
        url_store_(context) {
    BlobDataHandle::GetBlobRegistry()->URLStoreForOrigin(
 -      context->GetSecurityOrigin(),
-+      GetEphemeralOrOriginalSecurityOrigin(context),
++      GetEphemeralOrOriginalSecurityOrigin(context).Get(),
        url_store_.BindNewEndpointAndPassReceiver(
            context->GetTaskRunner(TaskType::kFileReading)));
  }
