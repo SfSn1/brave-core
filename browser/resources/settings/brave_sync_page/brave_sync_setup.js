@@ -82,12 +82,16 @@ Polymer({
   },
 
   submitSyncCode_: async function () {
+    console.log('submitSyncCode_ 000')
     this.isSubmittingSyncCode_ = true
     const syncCodeToSubmit = this.syncCode || ''
     let success = false
     try {
+      console.log('submitSyncCode_ 001')
       success = await this.syncBrowserProxy_.setSyncCode(syncCodeToSubmit)
+      console.log('submitSyncCode_ 002')
     } catch (e) {
+      console.log('submitSyncCode_ 003++, e=', e)
       console.error("Error setting sync code")
       success = false
     }
