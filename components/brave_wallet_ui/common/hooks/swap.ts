@@ -35,6 +35,10 @@ import useBalance from './balance'
 
 const SWAP_VALIDATION_ERROR_CODE = 100
 
+const hasTokenInList = (token: BraveWallet.BlockchainToken, list: BraveWallet.BlockchainToken[]) =>
+  list.some(each =>
+    each.chainId === token.chainId && each.contractAddress.toLowerCase() === token.contractAddress.toLowerCase())
+
 export default function useSwap (
   selectedAccount: WalletAccountType,
   selectedNetwork: BraveWallet.NetworkInfo,
@@ -44,6 +48,7 @@ export default function useSwap (
   getERC20Allowance: (contractAddress: string, ownerAddress: string, spenderAddress: string) => Promise<string>,
   approveERC20Allowance: SimpleActionCreator<ApproveERC20Params>,
   isSwapSupported: (network: BraveWallet.NetworkInfo) => Promise<boolean>,
+  makeTokenVisible: (token: BraveWallet.BlockchainToken) => void,
   quote?: BraveWallet.SwapResponse,
   rawError?: SwapErrorResponse
 ) {
@@ -67,9 +72,37 @@ export default function useSwap (
     [selectedNetwork]
   )
 
+  const setToAssetAndMakeVisible = React.useCallback((token?: BraveWallet.BlockchainToken) => {
+    setToAsset(token)
+
+    if (token) {
+      makeTokenVisible(token)
+    }
+  }, [])
+
+  const hasToken = React.useCallback((token: BraveWallet.BlockchainToken) =>
+    swapAssetOptions.some(option =>
+      option.chainId === token.chainId &&
+      option.contractAddress.toLowerCase() === token.contractAddress.toLowerCase()),
+    [swapAssetOptions])
+
   React.useEffect(() => {
-    setFromAsset(swapAssetOptions[0])
-    setToAsset(swapAssetOptions[1])
+    // This hook is triggered whenever swapAssetOptions changes, updating
+    // the from/to assets, typically when userVisibleTokensInfo is updated
+    // in the following three ways:
+    //   1. Redux initialisation.
+    //   2. User updates Visible Assets.
+    //   3. User selects a taker asset that is not part of
+    //      userVisibleTokensInfo.
+    //
+    //
+    if (!fromAsset || !hasToken(fromAsset)) {
+      setFromAsset(swapAssetOptions[0])
+    }
+
+    if (!toAsset || !hasToken(toAsset)) {
+      setToAsset(swapAssetOptions[1])
+    }
   }, [swapAssetOptions])
 
   React.useEffect(() => {
@@ -421,7 +454,7 @@ export default function useSwap (
 
   const flipSwapAssets = () => {
     setFromAsset(toAsset)
-    setToAsset(fromAsset)
+    setToAssetAndMakeVisible(fromAsset)
 
     onSwapParamsChange(
       { toOrFrom: 'from', fromAsset: toAsset, toAsset: fromAsset },
@@ -551,7 +584,7 @@ export default function useSwap (
     if (toOrFrom === 'from') {
       setFromAsset(asset)
     } else {
-      setToAsset(asset)
+      setToAssetAndMakeVisible(asset)
       setToAmount('0')
     }
 

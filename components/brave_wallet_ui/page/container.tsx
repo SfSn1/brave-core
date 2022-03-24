@@ -151,6 +151,19 @@ function Container (props: Props) {
   } = useTokenInfo(getBlockchainTokenInfo, userVisibleTokensInfo, fullTokenList, selectedNetwork)
 
   const {
+    onAddCustomAsset,
+    onUpdateVisibleAssets,
+    makeTokenVisible
+  } = useAssetManagement(
+    props.walletActions.addUserAsset,
+    props.walletActions.setUserAssetVisible,
+    props.walletActions.removeUserAsset,
+    props.walletActions.refreshBalancesAndPriceHistory,
+    fullTokenList,
+    userVisibleTokensInfo
+  )
+
+  const {
     exchangeRate,
     fromAmount,
     fromAsset,
@@ -184,6 +197,7 @@ function Container (props: Props) {
     getERC20Allowance,
     props.walletActions.approveERC20Allowance,
     getIsSwapSupported,
+    makeTokenVisible,
     swapQuote,
     swapError
   )
@@ -210,18 +224,6 @@ function Container (props: Props) {
     props.walletActions.sendTransaction,
     props.walletActions.sendERC721TransferFrom,
     props.wallet.fullTokenList
-  )
-
-  const {
-    onAddCustomAsset,
-    onUpdateVisibleAssets
-  } = useAssetManagement(
-    props.walletActions.addUserAsset,
-    props.walletActions.setUserAssetVisible,
-    props.walletActions.removeUserAsset,
-    props.walletActions.refreshBalancesAndPriceHistory,
-    fullTokenList,
-    userVisibleTokensInfo
   )
 
   const { computeFiatAmount } = usePricing(transactionSpotPrices)

@@ -53,7 +53,7 @@ export default function useAssets (
         .filter(asset => !assetsByNetwork
           .some(token => token.symbol.toUpperCase() === asset.symbol.toUpperCase()))
     ].filter(asset => asset.chainId === selectedNetwork.chainId)
-  }, [fullTokenList, userVisibleTokensInfo, nativeAsset, assetsByNetwork])
+  }, [nativeAsset, fullTokenList, assetsByNetwork, selectedNetwork])
 
   const [buyAssetOptions, setBuyAssetOptions] = React.useState<BraveWallet.BlockchainToken[]>([nativeAsset])
 

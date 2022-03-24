@@ -72,7 +72,7 @@ import {
   getIsSwapSupported
 } from '../common/async/lib'
 import { isHardwareAccount } from '../utils/address-utils'
-import { useAssets, useBalance, useSwap, useSend, usePreset } from '../common/hooks'
+import { useAssets, useBalance, useSwap, useSend, usePreset, useAssetManagement } from '../common/hooks'
 
 type Props = {
   panel: PanelState
@@ -114,7 +114,8 @@ function Container (props: Props) {
     pendingTransactions,
     defaultCurrencies,
     transactions,
-    userVisibleTokensInfo
+    userVisibleTokensInfo,
+    fullTokenList
   } = props.wallet
 
   const {
@@ -149,13 +150,22 @@ function Container (props: Props) {
     selectedAccount,
     networkList,
     selectedNetwork,
-    props.wallet.fullTokenList,
+    fullTokenList,
     userVisibleTokensInfo,
     transactionSpotPrices,
     getBuyAssets
   )
 
   const [selectedWyreAsset, setSelectedWyreAsset] = React.useState<BraveWallet.BlockchainToken>(buyAssetOptions[0])
+
+  const { makeTokenVisible } = useAssetManagement(
+    props.walletActions.addUserAsset,
+    props.walletActions.setUserAssetVisible,
+    props.walletActions.removeUserAsset,
+    props.walletActions.refreshBalancesAndPriceHistory,
+    fullTokenList,
+    userVisibleTokensInfo
+  )
 
   const {
     exchangeRate,
@@ -194,6 +204,7 @@ function Container (props: Props) {
     getERC20Allowance,
     props.walletActions.approveERC20Allowance,
     getIsSwapSupported,
+    makeTokenVisible,
     swapQuote,
     swapError
   )

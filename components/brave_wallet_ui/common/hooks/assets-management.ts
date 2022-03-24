@@ -16,7 +16,8 @@ import { stripERC20TokenImageURL } from '../../utils/string-utils'
 const onlyInLeft = (left: BraveWallet.BlockchainToken[], right: BraveWallet.BlockchainToken[]) =>
   left.filter(leftValue =>
     !right.some(rightValue =>
-        leftValue.contractAddress.toLowerCase() === rightValue.contractAddress.toLowerCase()))
+      leftValue.contractAddress.toLowerCase() === rightValue.contractAddress.toLowerCase() &&
+      leftValue.chainId === rightValue.chainId))
 
 export default function useAssetManagement (
   addUserAsset: SimpleActionCreator<BraveWallet.BlockchainToken>,
@@ -38,9 +39,11 @@ export default function useAssetManagement (
     refreshBalancesPricesAndHistory()
   }
 
-  const findVisibleTokenInfo = (token: BraveWallet.BlockchainToken) => {
-    return userVisibleTokensInfo.find((t) => t.contractAddress.toLowerCase() === token.contractAddress.toLowerCase())
-  }
+  const findVisibleTokenInfo = React.useCallback((token: BraveWallet.BlockchainToken) =>
+    userVisibleTokensInfo.find(t =>
+      t.contractAddress.toLowerCase() === token.contractAddress.toLowerCase() &&
+      t.chainId === token.chainId),
+    [userVisibleTokensInfo])
 
   const onUpdateVisibleAssets = React.useCallback((updatedTokensList: BraveWallet.BlockchainToken[]) => {
     // Gets a list of all added tokens and adds them to the userVisibleTokensInfo list
@@ -62,7 +65,7 @@ export default function useAssetManagement (
         if (token.contractAddress.toLowerCase() === '' && !foundToken?.visible && token.visible) {
           onAddUserAsset(token)
         }
-        // Updates token visibility exluding a networks native token
+        // Updates token visibility excluding a networks native token
         if (foundToken?.visible !== token.visible && token.contractAddress.toLowerCase() !== '') {
           setUserAssetVisible({ token, isVisible: token.visible })
         }
@@ -72,8 +75,28 @@ export default function useAssetManagement (
     refreshBalancesPricesAndHistory()
   }, [userVisibleTokensInfo])
 
+  const makeTokenVisible = React.useCallback((token: BraveWallet.BlockchainToken) => {
+    const foundTokenIdx = userVisibleTokensInfo.findIndex(t =>
+      t.contractAddress.toLowerCase() === token.contractAddress.toLowerCase() &&
+      t.chainId === token.chainId)
+
+    const updatedTokensList = [...userVisibleTokensInfo]
+
+    // If token is not part of user-visible tokens, add it.
+    if (foundTokenIdx === -1) {
+      return onUpdateVisibleAssets([...updatedTokensList, token])
+    }
+
+    // If token is part of user-visible tokens, then:
+    //   - toggle visibility for custom tokens
+    //   - do nothing for non-custom tokens
+    updatedTokensList.splice(foundTokenIdx, 1, { ...token, visible: true })
+    onUpdateVisibleAssets(updatedTokensList)
+  }, [userVisibleTokensInfo, onUpdateVisibleAssets])
+
   return {
     onUpdateVisibleAssets,
-    onAddCustomAsset
+    onAddCustomAsset,
+    makeTokenVisible
   }
 }
