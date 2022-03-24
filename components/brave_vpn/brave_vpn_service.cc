@@ -37,6 +37,9 @@
 #include "third_party/icu/source/i18n/unicode/timezone.h"
 #endif  // !BUILDFLAG(IS_ANDROID)
 
+using ConnectionState = brave_vpn::mojom::ConnectionState;
+using PurchasedState = brave_vpn::mojom::PurchasedState;
+
 namespace {
 
 #if !BUILDFLAG(IS_ANDROID)
