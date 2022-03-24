@@ -759,11 +759,9 @@ void BraveVpnService::SetSelectedRegion(
 
 void BraveVpnService::GetProductUrls(GetProductUrlsCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
-  brave_vpn::mojom::ProductUrls urls;
-  urls.feedback = brave_vpn::kFeedbackUrl;
-  urls.about = brave_vpn::kAboutUrl;
-  urls.manage = brave_vpn::GetManageUrl();
-  std::move(callback).Run(urls.Clone());
+  std::move(callback).Run(brave_vpn::mojom::ProductUrls::New(
+      brave_vpn::kFeedbackUrl, brave_vpn::kAboutUrl,
+      brave_vpn::GetManageUrl()));
 }
 
 void BraveVpnService::CreateSupportTicket(
