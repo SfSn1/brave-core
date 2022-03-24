@@ -143,13 +143,7 @@ class BraveVpnService :
 #if !BUILDFLAG(IS_ANDROID)
   friend class BraveAppMenuBrowserTest;
   friend class BraveBrowserCommandControllerTest;
-  FRIEND_TEST_ALL_PREFIXES(BraveVPNServiceTest, RegionDataTest);
-  FRIEND_TEST_ALL_PREFIXES(BraveVPNServiceTest, HostnamesTest);
-  FRIEND_TEST_ALL_PREFIXES(BraveVPNServiceTest, CancelConnectingTest);
-  FRIEND_TEST_ALL_PREFIXES(BraveVPNServiceTest, ConnectionInfoTest);
-  FRIEND_TEST_ALL_PREFIXES(BraveVPNServiceTest, LoadPurchasedStateTest);
-  FRIEND_TEST_ALL_PREFIXES(BraveVPNServiceTest, LoadRegionDataFromPrefsTest);
-  FRIEND_TEST_ALL_PREFIXES(BraveVPNServiceTest, NeedsConnectTest);
+  friend class BraveVPNServiceTest;
 
   // brave_vpn::BraveVPNOSConnectionAPI::Observer overrides:
   void OnCreated() override;
@@ -161,7 +155,7 @@ class BraveVpnService :
   void OnDisconnected() override;
   void OnIsDisconnecting() override;
 
-  brave_vpn::BraveVPNConnectionInfo GetConnectionInfo();
+  const brave_vpn::BraveVPNConnectionInfo& GetConnectionInfo();
   void LoadCachedRegionData();
   void LoadCachedSelectedRegion();
   void UpdateAndNotifyConnectionStateChange(
@@ -201,10 +195,6 @@ class BraveVpnService :
       const base::flat_map<std::string, std::string>& headers);
 
   brave_vpn::BraveVPNOSConnectionAPI* GetBraveVPNConnectionAPI();
-
-  void set_test_timezone(const std::string& timezone) {
-    test_timezone_ = timezone;
-  }
 #endif  // !BUILDFLAG(IS_ANDROID)
 
   using URLRequestCallback =

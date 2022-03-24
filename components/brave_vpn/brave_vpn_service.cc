@@ -186,7 +186,8 @@ BraveVpnService::BraveVpnService(
         skus_service_getter)
     : prefs_(prefs),
       skus_service_getter_(skus_service_getter),
-      api_request_helper_(GetNetworkTrafficAnnotationTag(), url_loader_factory) {
+      api_request_helper_(GetNetworkTrafficAnnotationTag(),
+                          url_loader_factory) {
   DCHECK(brave_vpn::IsBraveVPNEnabled());
 
   auto* cmd = base::CommandLine::ForCurrentProcess();
@@ -424,7 +425,7 @@ void BraveVpnService::ToggleConnection() {
   can_disconnect ? Disconnect() : Connect();
 }
 
-brave_vpn::BraveVPNConnectionInfo BraveVpnService::GetConnectionInfo() {
+const brave_vpn::BraveVPNConnectionInfo& BraveVpnService::GetConnectionInfo() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   return connection_info_;
 }
