@@ -636,7 +636,6 @@ void BraveVpnService::ParseAndCacheDeviceRegionName(
     const std::string* region_name = timezones.FindStringKey("name");
     if (!region_name)
       continue;
-    std::string default_region_name_candidate = *region_name;
     const base::Value* timezone_list_value = timezones.FindKey("timezones");
     if (!timezone_list_value || !timezone_list_value->is_list())
       continue;
