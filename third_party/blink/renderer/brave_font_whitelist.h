@@ -3,8 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef BRAVE_THIRD_PARTY_BLINK_RENDERER_CORE_BRAVE_FONT_WHITELIST_H_
-#define BRAVE_THIRD_PARTY_BLINK_RENDERER_CORE_BRAVE_FONT_WHITELIST_H_
+#ifndef BRAVE_THIRD_PARTY_BLINK_RENDERER_BRAVE_FONT_WHITELIST_H_
+#define BRAVE_THIRD_PARTY_BLINK_RENDERER_BRAVE_FONT_WHITELIST_H_
 
 namespace brave {
 
@@ -656,4 +656,4 @@ constexpr auto kAllowedFontFamilies =
 
 }  // namespace brave
 
-#endif  // BRAVE_THIRD_PARTY_BLINK_RENDERER_CORE_BRAVE_FONT_WHITELIST_H_
+#endif  // BRAVE_THIRD_PARTY_BLINK_RENDERER_BRAVE_FONT_WHITELIST_H_
