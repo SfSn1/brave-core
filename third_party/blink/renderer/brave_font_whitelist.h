@@ -6,6 +6,9 @@
 #ifndef BRAVE_THIRD_PARTY_BLINK_RENDERER_BRAVE_FONT_WHITELIST_H_
 #define BRAVE_THIRD_PARTY_BLINK_RENDERER_BRAVE_FONT_WHITELIST_H_
 
+#include "base/containers/fixed_flat_set.h"
+#include "base/strings/string_piece.h"
+
 namespace brave {
 
 #if BUILDFLAG(IS_MAC)

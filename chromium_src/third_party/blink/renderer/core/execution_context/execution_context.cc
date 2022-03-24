@@ -6,7 +6,6 @@
 #include "third_party/blink/renderer/core/execution_context/execution_context.h"
 
 #include "base/command_line.h"
-#include "base/containers/fixed_flat_set.h"
 #include "base/sequence_checker.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
