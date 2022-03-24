@@ -272,7 +272,7 @@ class BraveVpnService :
   mojo::RemoteSet<brave_vpn::mojom::ServiceObserver> observers_;
   api_request_helper::APIRequestHelper api_request_helper_;
   std::string skus_credential_;
-  base::WeakPtrFactory<BraveVpnService> weak_ptr_factory_;
+  base::WeakPtrFactory<BraveVpnService> weak_ptr_factory_{this};
 };
 
 #endif  // BRAVE_COMPONENTS_BRAVE_VPN_BRAVE_VPN_SERVICE_H_

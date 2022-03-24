@@ -186,8 +186,7 @@ BraveVpnService::BraveVpnService(
         skus_service_getter)
     : prefs_(prefs),
       skus_service_getter_(skus_service_getter),
-      api_request_helper_(GetNetworkTrafficAnnotationTag(), url_loader_factory),
-      weak_ptr_factory_(this) {
+      api_request_helper_(GetNetworkTrafficAnnotationTag(), url_loader_factory) {
   DCHECK(brave_vpn::IsBraveVPNEnabled());
 
   auto* cmd = base::CommandLine::ForCurrentProcess();
