@@ -103,19 +103,4 @@ public class BackgroundImagesPreferences
         sharedPreferencesEditor.putInt(preferenceName, newValue);
         sharedPreferencesEditor.apply();
     }
-
-    // private void initWidgetStack() {
-    //     findPreference(PREF_WIDGET_STACK)
-    //             .setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-    //                 @Override
-    //                 public boolean onPreferenceClick(Preference preference) {
-    //                     Intent ntpWidgetStackActivityIntent =
-    //                             new Intent(getActivity(), NTPWidgetStackActivity.class);
-    //                     ntpWidgetStackActivityIntent.putExtra(
-    //                             NTPWidgetStackActivity.FROM_SETTINGS, true);
-    //                     getActivity().startActivity(ntpWidgetStackActivityIntent);
-    //                     return true;
-    //                 }
-    //             });
-    // }
 }

@@ -1426,12 +1426,6 @@ Are you sure you want to do this?
       <message name="IDS_ACCESSIBILITY_TOOLBAR_BTN_SEARCH_ACCELERATOR" desc="Content description for the search accelerator button">
         Search
       </message>
-<!--      <message name="IDS_MENU_EDIT" desc="NTP widget menu item">
-         Edit Stack
-      </message>
-      <message name="IDS_MENU_REMOVE" desc="NTP widget menu item">
-        Remove Widget
-      </message> -->
       <message name="IDS_MENU_LEARN_MORE" desc="NTP widget menu item">
         Learn More
       </message>
@@ -1453,12 +1447,6 @@ Are you sure you want to do this?
       <message name="IDS_PREVIEW_CONVERSION" desc="Binance preview conversion text.">
         Preview Conversion
       </message>
-<!--       <message name="IDS_MENU_REFRESH_DATA" desc="NTP widget menu item">
-        Refresh Data
-      </message> -->
-       <!--<message name="IDS_MENU_DISCONNECT" desc="NTP widget menu item">
-        Disconnect
-      </message> -->
       <message name="IDS_BUY_CRYPTO" desc="Binance buy section text.">
         Buy Crypto
       </message>
@@ -1468,12 +1456,6 @@ Are you sure you want to do this?
       <message name="IDS_US_TEXT" desc="Binance buy section .us text.">
         .us
       </message>
-
-
-
-<!--       <message name="IDS_WIDGET_STACK" desc="Widget stack text.">
-        Widget Stack
-      </message> -->
       <message name="IDS_TEXT_HAS_BEEN_COPIED" desc="Copy to clipboard toast text.">
         Your text has been copied to the clipboard.
       </message>
@@ -1486,17 +1468,8 @@ Are you sure you want to do this?
       <message name="IDS_PRIVACY_STATS" desc="Private stats title text.">
         Privacy Stats
       </message>
-      <message name="IDS_FAVORITES" desc="Favorites title text.">
-        Top Sites
-      </message>
       <message name="IDS_BINANCE" desc="Binance title text.">
         Binance
-      </message>
-      <message name="IDS_PRIVACY_STATS_TEXT" desc="Private stats text.">
-        Trackers &amp; Ads Blocked, Saved Bandwidth, and Time Saved Estimates.
-      </message>
-      <message name="IDS_FAVORITES_TEXT" desc="Private stats text.">
-        Open top sites you frequently visit.
       </message>
       <message name="IDS_SUMMARY" desc="Binance detail section title.">
         Summary
@@ -1510,18 +1483,12 @@ Are you sure you want to do this?
       <message name="IDS_BUY" desc="Binance detail section title.">
         Buy
       </message>
-      <message name="IDS_BINANCE_DISCONNECT_TEXT" desc="Binance disconnected state text.">
-        Enable Binance connection to view Binance account balance and trade crypto.
-      </message>
       <message name="IDS_I_WANT_TO_CONVERT" desc="Binance convert text hint.">
         I want to convert...
       </message>
       <message name="IDS_I_WANT_TO_SPEND" desc="Binance buy text hint.">
         I want to spend...
       </message>
-<!--       <message name="IDS_AVAILABLE" desc="Binance available text.">
-        Available
-      </message> -->
       <message name="IDS_NOT_ENOUGH_BALANCE" desc="Error text for Binance deposit">
         Not enough balance for conversion
       </message>
@@ -1540,9 +1507,6 @@ Are you sure you want to do this?
       <message name="IDS_CONFIRM_CONVERSION" desc="Binance text">
         Confirm Conversion
       </message>
-      <!-- <message name="IDS_THERES_NOTHING" desc="Top sites error message">
-        There's nothing here yet on the top sites.
-      </message> -->
       <message name="IDS_PRICE" desc="Binance convert item text">
         Price
       </message>

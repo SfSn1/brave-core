@@ -110,7 +110,6 @@ public class NTPUtil {
             // Correction defaults to tablet BackgroundImage
             imageCreditCorrection = isLandscape ? (int) (pxHeight * (isCompensate ? 0.48 : 0.54))
                                                 : (int) (pxHeight * (isCompensate ? 0.60 : 0.30));
-            widgetCompensation = dpToPx(activity, 80);                                                
 
             if (ntpImage instanceof BackgroundImage) {
                 if (!isTablet) {
@@ -137,9 +136,6 @@ public class NTPUtil {
             }
         }
 
-        
-        int correction = imageCreditCorrection - widgetCompensation;
-        Log.d("bn", "widgetremoval widgetCompensation:"+widgetCompensation+" imageCreditCorrection:"+imageCreditCorrection+ " correction:"+correction);
         return correction;
     }
 
